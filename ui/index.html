@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Todo Notes Tracker</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1 id="current-date">Today</h1>
+            <div class="header-controls">
+                <div class="nav-group">
+                    <button id="prev-day" class="nav-button" title="Previous day">←</button>
+                    <button id="today" class="nav-button" title="Go to today">Today</button>
+                    <button id="next-day" class="nav-button" title="Next day">→</button>
+                </div>
+                <div class="zoom-controls">
+                    <button id="zoom-out" class="zoom-button" title="Decrease text size (Cmd/Ctrl + -)">−</button>
+                    <span id="zoom-level">100%</span>
+                    <button id="zoom-in" class="zoom-button" title="Increase text size (Cmd/Ctrl + +)">+</button>
+                    <button id="zoom-reset" class="zoom-button" title="Reset text size (Cmd/Ctrl + 0)">Reset</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Todo List Pane -->
+            <div class="todo-pane">
+                <div class="pane-header">
+                    <h2>Tasks</h2>
+                    <div class="pomodoro-controls">
+                        <button id="start-pomodoro" class="pomodoro-btn" disabled>
+                            🍅 Start Pomodoro
+                        </button>
+                        <select id="pomodoro-duration">
+                            <option value="25">25 min</option>
+                            <option value="20">20 min</option>
+                            <option value="15">15 min</option>
+                            <option value="5">5 min</option>
+                            <option value="1">1 min (test)</option>
+                            <option value="10s" selected>10 sec (test)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="todo-list" id="todo-list">
+                    <!-- Todo items will be dynamically added here -->
+                </div>
+
+                <div class="add-todo">
+                    <input type="text" id="new-todo-input" placeholder="Add a new task..." />
+                    <button id="add-todo-btn">Add</button>
+                </div>
+                
+                <!-- Custom Modal Dialogs -->
+                <div id="custom-modal" class="modal hidden">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modal-title">Alert</h3>
+                        </div>
+                        <div class="modal-body">
+                            <p id="modal-message">Message</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button id="modal-ok" class="modal-btn modal-btn-primary">OK</button>
+                            <button id="modal-cancel" class="modal-btn modal-btn-secondary hidden">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pomodoro Timer Overlay -->
+                <div id="pomodoro-overlay" class="pomodoro-overlay hidden">
+                    <div class="timer-display">
+                        <div class="timer-task" id="timer-task"></div>
+                        <div class="timer-countdown" id="timer-countdown">20:00</div>
+                        <div class="timer-controls">
+                            <button id="stop-timer" class="timer-btn">Stop Timer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes Pane -->
+            <div class="notes-pane" id="notes-pane">
+                <div class="pane-header">
+                    <h2>Notes</h2>
+                    <button id="toggle-notes" class="toggle-btn" title="Hide notes">−</button>
+                </div>
+                <textarea id="notes-text" placeholder="Write your notes for today..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Version info -->
+    <div class="version-info">
+        <span id="app-version">v1.0.0</span>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>

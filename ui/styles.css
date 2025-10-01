@@ -1,0 +1,569 @@
+/* CSS Custom Properties for Zoom */
+:root {
+    --zoom-scale: 1.0;
+}
+
+html {
+    font-size: calc(16px * var(--zoom-scale));
+    transition: font-size 0.2s ease;
+}
+
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background-color: #f8f9fa;
+    color: #2c3e50;
+    line-height: 1.6;
+    font-size: 0.875rem; /* 14px at base scale */
+}
+
+/* App container */
+.app-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+.app-header {
+    background: white;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.app-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.nav-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+}
+
+.zoom-button {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.75rem; /* 12px at base scale */
+    font-weight: bold;
+    min-width: 24px;
+    transition: background-color 0.2s;
+}
+
+.zoom-button:hover {
+    background: #0056b3;
+}
+
+.zoom-button:active {
+    transform: scale(0.95);
+}
+
+#zoom-level {
+    font-size: 0.6875rem; /* 11px at base scale */
+    font-weight: bold;
+    color: #333;
+    min-width: 35px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.nav-button {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+}
+
+.nav-button:hover {
+    background: #5a6268;
+}
+
+/* Main content */
+.main-content {
+    flex: 1;
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    overflow: hidden;
+}
+
+/* Pane styles */
+.todo-pane, .notes-pane {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.todo-pane {
+    flex: 1;
+    min-width: 400px;
+}
+
+.notes-pane {
+    flex: 0 0 300px;
+    transition: flex 0.3s ease;
+}
+
+.notes-pane.collapsed {
+    flex: 0 0 auto;
+    width: 40px;
+    overflow: hidden;
+}
+
+.notes-pane.collapsed .pane-header {
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+    width: 40px;
+    height: 100%;
+    padding: 1rem 0;
+}
+
+.notes-pane.collapsed .pane-header h2 {
+    display: none;
+}
+
+.notes-pane.collapsed textarea {
+    display: none;
+}
+
+/* Custom Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    min-width: 300px;
+    max-width: 500px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: modalAppear 0.2s ease-out;
+}
+
+@keyframes modalAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+    background: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #333;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    line-height: 1.6;
+}
+
+.modal-body p {
+    margin: 0;
+    white-space: pre-line;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modal-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    min-width: 80px;
+}
+
+.modal-btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.modal-btn-primary:hover {
+    background: #0056b3;
+}
+
+.modal-btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.modal-btn-secondary:hover {
+    background: #545b62;
+}
+
+.pane-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+}
+
+.pane-header h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Pomodoro controls */
+.pomodoro-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.pomodoro-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+}
+
+.pomodoro-btn:hover:not(:disabled) {
+    background: #c0392b;
+}
+
+.pomodoro-btn:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+}
+
+#pomodoro-duration {
+    padding: 0.4rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+/* Todo list */
+.todo-list {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f1f3f4;
+    transition: background-color 0.2s;
+}
+
+.todo-item:hover {
+    background-color: #f8f9fa;
+}
+
+.todo-item.selected {
+    background-color: #e3f2fd;
+    border-left: 3px solid #2196f3;
+    padding-left: calc(0.75rem - 3px);
+}
+
+.todo-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #6c757d;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: all 0.2s;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.todo-checkbox.completed {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.todo-checkbox.completed::after {
+    content: '✓';
+    color: white;
+    font-size: 0.875rem; /* 14px at base scale */
+    font-weight: bold;
+}
+
+.todo-text {
+    flex: 1;
+    font-size: 1rem;
+    line-height: 1.5;
+    word-wrap: break-word;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.todo-text.completed {
+    text-decoration: line-through;
+    color: #6c757d;
+}
+
+.todo-actions {
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.todo-item:hover .todo-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    border-radius: 3px;
+    color: #6c757d;
+    font-size: 0.8rem;
+    transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+    background-color: #e9ecef;
+}
+
+.move-btn {
+    color: #ffc107;
+}
+
+.delete-btn {
+    color: #dc3545;
+}
+
+/* Add todo */
+.add-todo {
+    padding: 1rem;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    gap: 0.5rem;
+}
+
+#new-todo-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+#new-todo-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+#add-todo-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+#add-todo-btn:hover {
+    background: #0056b3;
+}
+
+/* Notes */
+#notes-text {
+    flex: 1;
+    padding: 1rem;
+    border: none;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    background: transparent;
+}
+
+/* Toggle button */
+.toggle-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.toggle-btn:hover {
+    background: #5a6268;
+}
+
+/* Pomodoro overlay */
+.pomodoro-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(231, 76, 60, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    z-index: 1000;
+}
+
+.pomodoro-overlay.hidden {
+    display: none;
+}
+
+.timer-display {
+    text-align: center;
+    color: white;
+}
+
+#timer-task {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+}
+
+#timer-countdown {
+    font-size: 4rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+    font-family: 'Courier New', monospace;
+}
+
+#stop-timer {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: 2px solid white;
+    padding: 0.75rem 2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+#stop-timer:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .notes-pane {
+        flex: 0 0 200px;
+    }
+    
+    .app-header {
+        padding: 0.75rem 1rem;
+    }
+    
+    .app-header h1 {
+        font-size: 1.25rem;
+    }
+}
+
+/* Version info */
+.version-info {
+    position: fixed;
+    bottom: 8px;
+    right: 8px;
+    font-size: 0.6rem;
+    color: #999;
+    opacity: 0.7;
+    z-index: 1000;
+    pointer-events: none;
+}

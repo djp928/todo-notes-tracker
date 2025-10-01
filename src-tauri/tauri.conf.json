@@ -1,0 +1,29 @@
+{
+  "productName": "Todo Notes Tracker",
+  "version": "1.0.0",
+  "identifier": "com.todonotestracker.app",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Todo Notes Tracker",
+        "width": 900,
+        "height": 700,
+        "minWidth": 400,
+        "minHeight": 300,
+        "resizable": true,
+        "devtools": true
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "withGlobalTauri": true
+  },
+  "bundle": {
+    "active": false
+  },
+  "plugins": {}
+}
