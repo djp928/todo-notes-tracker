@@ -284,7 +284,7 @@ jobs:
           git push origin "v${{ needs.version.outputs.new-version }}"
 
       - name: Create GitHub Release
-        uses: ncipollo/create-release@v1
+        uses: ncipollo/release-action@v1
         with:
           tag: v${{ needs.version.outputs.new-version }}
           name: Todo Notes Tracker v${{ needs.version.outputs.new-version }}
