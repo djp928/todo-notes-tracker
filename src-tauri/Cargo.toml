@@ -1,6 +1,6 @@
 [package]
 name = "todo-notes-tracker"
-version = "1.0.0"
+version = "1.1.0"
 description = "A bullet journal style todo app with pomodoro timer"
 authors = ["Your Name <your.email@example.com>"]
 license = ""
