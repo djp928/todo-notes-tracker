@@ -135,9 +135,15 @@ jobs:
       env:
         DISPLAY: ":99"
         TAURI_SKIP_ICON_GENERATION: "true"
+        TAURI_SKIP_DEVTOOLS_CHECK: "true"
         CI: "true"
+        GITHUB_ACTIONS: "true"
       run: |
         export DISPLAY=:99
+        export TAURI_SKIP_ICON_GENERATION=true
+        export TAURI_SKIP_DEVTOOLS_CHECK=true
         Xvfb :99 -screen 0 1024x768x24 &
         sleep 3
+        echo "Building with icon skip enabled..."
+        echo "TAURI_SKIP_ICON_GENERATION=$TAURI_SKIP_ICON_GENERATION"
         cargo build --release
