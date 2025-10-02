@@ -9,6 +9,16 @@ on:
       - '.gitignore'
       - '.github/**'
       - '!.github/workflows/release.yml'
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: 'Force release build for current version'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 permissions:
   contents: write
@@ -32,6 +42,16 @@ jobs:
       - name: Check if release needed
         id: version-check
         run: |
+          # Check if this is a forced release
+          if [ "${{ github.event.inputs.force_release }}" = "true" ]; then
+            echo "Force release requested"
+            CURRENT_VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
+            echo "should-release=true" >> $GITHUB_OUTPUT
+            echo "new-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "version-type=manual" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
           # Get the latest tag
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           echo "Latest tag: $LATEST_TAG"
