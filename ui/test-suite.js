@@ -720,6 +720,126 @@ describe('Calendar Functionality', () => {
     });
 });
 
+describe('Panel Resizing', () => {
+    test('should start and stop resize operations', () => {
+        // Mock DOM elements
+        const mockCalendarPane = { 
+            offsetWidth: 320,
+            style: { width: '' },
+            classList: { contains: () => false }
+        };
+        const mockNotesPane = { 
+            offsetWidth: 300,
+            style: { width: '' },
+            classList: { contains: () => false }
+        };
+        const mockMainContent = {
+            classList: {
+                add: () => {},
+                remove: () => {}
+            }
+        };
+        
+        window.calendarPane = mockCalendarPane;
+        window.notesPane = mockNotesPane;
+        window.mainContent = mockMainContent;
+        
+        // Test calendar resize start
+        const mockEvent = { preventDefault: () => {}, clientX: 100 };
+        startResize(mockEvent, 'calendar');
+        
+        assert.truthy(isResizing);
+        assert.equal(currentResizeHandle, 'calendar');
+        assert.equal(startX, 100);
+        assert.equal(startCalendarWidth, 320);
+        
+        // Test resize stop
+        stopResize();
+        assert.falsy(isResizing);
+        assert.equal(currentResizeHandle, null);
+    });
+
+    test('should handle resize movements correctly', () => {
+        // Setup mock elements
+        const mockCalendarPane = { 
+            offsetWidth: 320,
+            style: { width: '' },
+            classList: { contains: () => false }
+        };
+        window.calendarPane = mockCalendarPane;
+        
+        // Start resize
+        isResizing = true;
+        currentResizeHandle = 'calendar';
+        startX = 100;
+        startCalendarWidth = 320;
+        
+        // Test resize movement
+        const moveEvent = { preventDefault: () => {}, clientX: 150 };
+        handleResize(moveEvent);
+        
+        // Should increase width by 50px (150 - 100)
+        assert.equal(mockCalendarPane.style.width, '370px');
+        
+        // Test with boundary conditions
+        const extremeEvent = { preventDefault: () => {}, clientX: 50 };
+        handleResize(extremeEvent);
+        
+        // Should respect minimum width of 200px (320 - 50 = 270, which is > 200)
+        assert.equal(mockCalendarPane.style.width, '270px');
+    });
+
+    test('should reset panel sizes correctly', () => {
+        // Mock elements
+        const mockCalendarPane = { 
+            style: { width: '500px' },
+            classList: { contains: () => false }
+        };
+        const mockNotesPane = { 
+            style: { width: '400px' },
+            classList: { contains: () => false }
+        };
+        
+        window.calendarPane = mockCalendarPane;
+        window.notesPane = mockNotesPane;
+        
+        // Mock updateCalendar to prevent DOM manipulation
+        const originalUpdateCalendar = window.updateCalendar;
+        window.updateCalendar = () => {};
+        
+        resetPanelSizes();
+        
+        assert.equal(mockCalendarPane.style.width, '320px');
+        assert.equal(mockNotesPane.style.width, '300px');
+        
+        // Restore original function
+        window.updateCalendar = originalUpdateCalendar;
+    });
+
+    test('should not resize collapsed panels', () => {
+        // Mock collapsed calendar pane
+        const mockCalendarPane = { 
+            offsetWidth: 40,
+            style: { width: '40px' },
+            classList: { contains: (className) => className === 'collapsed' }
+        };
+        window.calendarPane = mockCalendarPane;
+        
+        // Start resize
+        isResizing = true;
+        currentResizeHandle = 'calendar';
+        startX = 100;
+        startCalendarWidth = 40;
+        
+        // Try to resize
+        const moveEvent = { preventDefault: () => {}, clientX: 150 };
+        handleResize(moveEvent);
+        
+        // Width should remain unchanged for collapsed panel
+        assert.equal(mockCalendarPane.style.width, '40px');
+    });
+});
+
 describe('Integration Tests', () => {
     test('should handle complete todo workflow', async () => {
         // Reset state

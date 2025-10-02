@@ -56,6 +56,15 @@ let pomodoroInterval = null;
 let calendarDate = new Date(); // Date for which month is displayed
 let calendarEvents = {}; // Store events by date key (YYYY-MM-DD)
 
+// Panel resize state
+let isResizing = false;
+let currentResizeHandle = null;
+let startX = 0;
+let startCalendarWidth = 320; // Default calendar width
+let startNotesWidth = 300;    // Default notes width
+const defaultCalendarWidth = 320;
+const defaultNotesWidth = 300;
+
 // Zoom state
 let zoomLevel = 1.0;
 const zoomStep = 0.1;
@@ -87,6 +96,12 @@ const prevMonthBtn = document.getElementById('prev-month');
 const nextMonthBtn = document.getElementById('next-month');
 const toggleNotesBtn = document.getElementById('toggle-notes');
 const notesPane = document.getElementById('notes-pane');
+
+// Resize elements
+const resizeHandle1 = document.getElementById('resize-handle-1');
+const resizeHandle2 = document.getElementById('resize-handle-2');
+const resetPanelsBtn = document.getElementById('reset-panels');
+const mainContent = document.querySelector('.main-content');
 
 // Zoom elements
 const zoomInBtn = document.getElementById('zoom-in');
@@ -209,6 +224,21 @@ function setupEventListeners() {
     if (nextMonthBtn) {
         nextMonthBtn.addEventListener('click', () => navigateMonth(1));
     }
+    
+    // Panel resize controls
+    if (resizeHandle1) {
+        resizeHandle1.addEventListener('mousedown', (e) => startResize(e, 'calendar'));
+    }
+    if (resizeHandle2) {
+        resizeHandle2.addEventListener('mousedown', (e) => startResize(e, 'notes'));
+    }
+    if (resetPanelsBtn) {
+        resetPanelsBtn.addEventListener('click', resetPanelSizes);
+    }
+    
+    // Global resize handlers
+    document.addEventListener('mousemove', handleResize);
+    document.addEventListener('mouseup', stopResize);
     
     // Zoom controls
     console.log('Zoom buttons found:', {
@@ -1006,6 +1036,69 @@ async function loadCalendarEventsFromStorage() {
         // Initialize with empty object if loading fails
         calendarEvents = {};
     }
+}
+
+// Panel resizing functions
+function startResize(e, panelType) {
+    e.preventDefault();
+    isResizing = true;
+    currentResizeHandle = panelType;
+    startX = e.clientX;
+    
+    if (panelType === 'calendar') {
+        startCalendarWidth = calendarPane.offsetWidth;
+    } else if (panelType === 'notes') {
+        startNotesWidth = notesPane.offsetWidth;
+    }
+    
+    mainContent.classList.add('resizing');
+    document.body.style.cursor = 'col-resize';
+    
+    console.log(`Started resizing ${panelType} panel`);
+}
+
+function handleResize(e) {
+    if (!isResizing || !currentResizeHandle) return;
+    
+    e.preventDefault();
+    const deltaX = e.clientX - startX;
+    
+    if (currentResizeHandle === 'calendar') {
+        const newWidth = Math.max(200, Math.min(600, startCalendarWidth + deltaX));
+        if (!calendarPane.classList.contains('collapsed')) {
+            calendarPane.style.width = newWidth + 'px';
+        }
+    } else if (currentResizeHandle === 'notes') {
+        const newWidth = Math.max(200, Math.min(500, startNotesWidth - deltaX));
+        if (!notesPane.classList.contains('collapsed')) {
+            notesPane.style.width = newWidth + 'px';
+        }
+    }
+}
+
+function stopResize() {
+    if (!isResizing) return;
+    
+    isResizing = false;
+    currentResizeHandle = null;
+    mainContent.classList.remove('resizing');
+    document.body.style.cursor = '';
+    
+    console.log('Stopped resizing');
+}
+
+function resetPanelSizes() {
+    console.log('Resetting panel sizes to defaults');
+    
+    if (!calendarPane.classList.contains('collapsed')) {
+        calendarPane.style.width = defaultCalendarWidth + 'px';
+    }
+    if (!notesPane.classList.contains('collapsed')) {
+        notesPane.style.width = defaultNotesWidth + 'px';
+    }
+    
+    // Update calendar display to handle any sizing changes
+    updateCalendar();
 }
 
 // Utility functions

@@ -22,6 +22,9 @@
                     <button id="zoom-in" class="zoom-button" title="Increase text size (Cmd/Ctrl + +)">+</button>
                     <button id="zoom-reset" class="zoom-button" title="Reset text size (Cmd/Ctrl + 0)">Reset</button>
                 </div>
+                <div class="layout-controls">
+                    <button id="reset-panels" class="reset-button" title="Reset panel sizes">Reset Layout</button>
+                </div>
             </div>
         </header>
 
@@ -43,6 +46,9 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Resize Handle 1: Between Calendar and Todo -->
+            <div class="resize-handle" id="resize-handle-1" data-panels="calendar,todo"></div>
 
             <!-- Todo List Pane -->
             <div class="todo-pane">
@@ -99,6 +105,9 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Resize Handle 2: Between Todo and Notes -->
+            <div class="resize-handle" id="resize-handle-2" data-panels="todo,notes"></div>
 
             <!-- Notes Pane -->
             <div class="notes-pane" id="notes-pane">
