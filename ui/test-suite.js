@@ -650,6 +650,74 @@ describe('Calendar Functionality', () => {
         // Restore original function
         window.invoke = originalInvoke;
     });
+
+    test('should save and load calendar events', async () => {
+        const originalInvoke = window.invoke;
+        let savedEvents = null;
+        
+        // Mock invoke for calendar persistence
+        window.invoke = async (command, args) => {
+            if (command === 'save_calendar_events') {
+                savedEvents = args.events;
+                return true;
+            } else if (command === 'load_calendar_events') {
+                return savedEvents || {};
+            } else if (command === 'get_app_data_dir') {
+                return '/test/data';
+            }
+            return originalInvoke(command, args);
+        };
+        
+        // Set test data directory
+        window.dataDir = '/test/data';
+        
+        // Test saving calendar events
+        const testEvents = {
+            '2024-01-15': ['Meeting', 'Lunch'],
+            '2024-01-16': ['Doctor appointment']
+        };
+        
+        calendarEvents = testEvents;
+        await saveCalendarEvents();
+        
+        // Verify events were saved
+        assert.deepEqual(savedEvents, testEvents);
+        
+        // Test loading calendar events
+        calendarEvents = {}; // Reset
+        await loadCalendarEvents();
+        
+        // Verify events were loaded
+        assert.deepEqual(calendarEvents, testEvents);
+        
+        // Restore original function
+        window.invoke = originalInvoke;
+    });
+
+    test('should handle calendar persistence errors gracefully', async () => {
+        const originalInvoke = window.invoke;
+        
+        // Mock invoke that fails
+        window.invoke = async (command, args) => {
+            if (command === 'save_calendar_events' || command === 'load_calendar_events') {
+                throw new Error('Storage error');
+            }
+            return originalInvoke(command, args);
+        };
+        
+        window.dataDir = '/test/data';
+        
+        // Test that save error doesn't crash
+        calendarEvents = { '2024-01-15': ['Test event'] };
+        await saveCalendarEvents(); // Should not throw
+        
+        // Test that load error initializes empty calendar
+        await loadCalendarEvents();
+        assert.deepEqual(calendarEvents, {});
+        
+        // Restore original function
+        window.invoke = originalInvoke;
+    });
 });
 
 describe('Integration Tests', () => {
