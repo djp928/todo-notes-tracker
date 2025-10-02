@@ -132,4 +132,12 @@ jobs:
         
     - name: Build Tauri app
       working-directory: src-tauri
-      run: cargo build --release
+      env:
+        DISPLAY: ":99"
+        TAURI_SKIP_ICON_GENERATION: "true"
+        CI: "true"
+      run: |
+        export DISPLAY=:99
+        Xvfb :99 -screen 0 1024x768x24 &
+        sleep 3
+        cargo build --release
