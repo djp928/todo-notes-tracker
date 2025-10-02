@@ -1,0 +1,9 @@
+# Cargo configuration for better Linux compatibility
+# Static linking configuration to reduce runtime dependencies
+
+[target.x86_64-unknown-linux-gnu]
+# Enable static linking of some libraries to improve compatibility
+rustflags = [
+    "-C", "link-arg=-Wl,--as-needed",
+    "-C", "link-arg=-static-libgcc",
+]
