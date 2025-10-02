@@ -26,6 +26,8 @@ jobs:
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
       
     - name: Cache cargo registry
       uses: actions/cache@v3
@@ -101,6 +103,8 @@ jobs:
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
       
     - name: Install system dependencies
       run: |
