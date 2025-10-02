@@ -766,6 +766,17 @@ function toggleNotesPane() {
     notesPane.classList.toggle('collapsed');
     const isCollapsed = notesPane.classList.contains('collapsed');
     
+    // Handle width when expanding/collapsing to work with resize functionality
+    if (isCollapsed) {
+        // When collapsing, the CSS will handle the 40px width
+        notesPane.style.width = '';
+    } else {
+        // When expanding, restore to default or current width
+        if (!notesPane.style.width || notesPane.style.width === '40px') {
+            notesPane.style.width = defaultNotesWidth + 'px';
+        }
+    }
+    
     if (toggleNotesBtn) {
         toggleNotesBtn.textContent = isCollapsed ? '+' : '−';
     }
@@ -784,6 +795,17 @@ function toggleCalendarPane() {
     
     calendarPane.classList.toggle('collapsed');
     const isCollapsed = calendarPane.classList.contains('collapsed');
+    
+    // Handle width when expanding/collapsing to work with resize functionality
+    if (isCollapsed) {
+        // When collapsing, the CSS will handle the 40px width
+        calendarPane.style.width = '';
+    } else {
+        // When expanding, restore to default or current width
+        if (!calendarPane.style.width || calendarPane.style.width === '40px') {
+            calendarPane.style.width = defaultCalendarWidth + 'px';
+        }
+    }
     
     if (toggleCalendarBtn) {
         toggleCalendarBtn.textContent = isCollapsed ? '+' : '−';
