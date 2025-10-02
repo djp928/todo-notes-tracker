@@ -144,6 +144,22 @@ body {
     overflow: hidden;
 }
 
+.calendar-pane.collapsed .pane-header {
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+    width: 40px;
+    height: 100%;
+    padding: 1rem 0;
+}
+
+.calendar-pane.collapsed .pane-header h2 {
+    display: none;
+}
+
+.calendar-pane.collapsed .calendar-content {
+    display: none;
+}
+
 .todo-pane {
     flex: 1;
     min-width: 400px;
