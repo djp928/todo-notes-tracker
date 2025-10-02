@@ -685,7 +685,7 @@ describe('Calendar Functionality', () => {
         
         // Test loading calendar events
         calendarEvents = {}; // Reset
-        await loadCalendarEvents();
+        await loadCalendarEventsFromStorage();
         
         // Verify events were loaded
         assert.deepEqual(calendarEvents, testEvents);
@@ -712,7 +712,7 @@ describe('Calendar Functionality', () => {
         await saveCalendarEvents(); // Should not throw
         
         // Test that load error initializes empty calendar
-        await loadCalendarEvents();
+        await loadCalendarEventsFromStorage();
         assert.deepEqual(calendarEvents, {});
         
         // Restore original function

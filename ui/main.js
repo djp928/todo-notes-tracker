@@ -112,7 +112,7 @@ async function initApp() {
         await loadDayData(currentDate);
         
         // Load calendar events
-        await loadCalendarEvents();
+        await loadCalendarEventsFromStorage();
         
         // Set up event listeners
         setupEventListeners();
@@ -863,7 +863,7 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
     dayEl.appendChild(eventsContainer);
     
     // Load existing events for this day
-    loadCalendarEvents(dateStr, eventsContainer);
+    loadCalendarEventsForDay(dateStr, eventsContainer);
     
     // Click handler to navigate to this day
     dayEl.addEventListener('click', (e) => {
@@ -956,8 +956,8 @@ async function createTodoFromEvent(date, eventText) {
     }
 }
 
-// Load events for a specific day
-function loadCalendarEvents(dateStr, container) {
+// Load events for a specific day and display them in the UI
+function loadCalendarEventsForDay(dateStr, container) {
     if (calendarEvents[dateStr]) {
         calendarEvents[dateStr].forEach(event => {
             const eventEl = document.createElement('div');
@@ -994,13 +994,13 @@ async function saveCalendarEvents() {
 }
 
 // Load calendar events from persistent storage
-async function loadCalendarEvents() {
+async function loadCalendarEventsFromStorage() {
     try {
         const events = await window.invoke('load_calendar_events', {
             dataDir: dataDir
         });
         calendarEvents = events || {};
-        console.log('Calendar events loaded:', calendarEvents);
+        console.log('Calendar events loaded from storage:', calendarEvents);
     } catch (error) {
         console.error('Failed to load calendar events:', error);
         // Initialize with empty object if loading fails
