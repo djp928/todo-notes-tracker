@@ -38,6 +38,13 @@ jobs:
       - name: Calculate new version
         id: version
         run: |
+          # Check if this is a manual workflow_dispatch trigger
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "This workflow should only be triggered manually via workflow_dispatch"
+            echo "Current trigger: ${{ github.event_name }}"
+            exit 1
+          fi
+          
           # Get current version from tauri.conf.json
           CURRENT_VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
           echo "Current version: $CURRENT_VERSION"
