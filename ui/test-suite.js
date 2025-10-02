@@ -618,8 +618,18 @@ describe('Calendar Functionality', () => {
             if (command === 'load_day_data') {
                 return { todos: [], notes: '', date: args.date };
             } else if (command === 'save_day_data') {
-                savedData = args.data;
+                savedData = args.dayData;
                 return true;
+            } else if (command === 'create_todo_item') {
+                // Mock the backend todo creation
+                return {
+                    id: 'test_todo_123',
+                    text: args.text,
+                    completed: false,
+                    symbol: '•',
+                    created_at: new Date().toISOString(),
+                    move_to_next_day: false
+                };
             } else if (command === 'get_app_data_dir') {
                 return '/test/data';
             }
@@ -634,8 +644,8 @@ describe('Calendar Functionality', () => {
         assert.equal(savedData.todos[0].text, '📅 Doctor appointment');
         assert.equal(savedData.todos[0].symbol, '•');
         assert.falsy(savedData.todos[0].completed);
-        assert.truthy(savedData.todos[0].id);
-        assert.truthy(savedData.todos[0].createdAt);
+        assert.equal(savedData.todos[0].id, 'test_todo_123');
+        assert.truthy(savedData.todos[0].created_at);
         
         // Restore original function
         window.invoke = originalInvoke;
