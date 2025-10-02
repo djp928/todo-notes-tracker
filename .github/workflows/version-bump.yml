@@ -1,0 +1,154 @@
+name: 'Version Bump'
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor  
+          - major
+      custom_version:
+        description: 'Custom version (optional, overrides version_type)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Calculate new version
+        id: version
+        run: |
+          # Get current version from tauri.conf.json
+          CURRENT_VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
+          echo "Current version: $CURRENT_VERSION"
+          
+          if [ -n "${{ github.event.inputs.custom_version }}" ]; then
+            NEW_VERSION="${{ github.event.inputs.custom_version }}"
+            echo "Using custom version: $NEW_VERSION"
+          else
+            # Parse current version
+            IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+            MAJOR=${VERSION_PARTS[0]}
+            MINOR=${VERSION_PARTS[1]}
+            PATCH=${VERSION_PARTS[2]}
+            
+            # Bump version based on type
+            case "${{ github.event.inputs.version_type }}" in
+              "major")
+                MAJOR=$((MAJOR + 1))
+                MINOR=0
+                PATCH=0
+                ;;
+              "minor")
+                MINOR=$((MINOR + 1))
+                PATCH=0
+                ;;
+              "patch")
+                PATCH=$((PATCH + 1))
+                ;;
+            esac
+            
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+            echo "Calculated new version: $NEW_VERSION"
+          fi
+          
+          echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update version in files
+        run: |
+          NEW_VERSION="${{ steps.version.outputs.new-version }}"
+          
+          # Update tauri.conf.json
+          sed -i 's/"version": "[^"]*"/"version": "'$NEW_VERSION'"/' src-tauri/tauri.conf.json
+          
+          # Update Cargo.toml
+          sed -i 's/^version = "[^"]*"/version = "'$NEW_VERSION'"/' src-tauri/Cargo.toml
+          
+          # Update index.html version display
+          sed -i 's/<span id="app-version">v[^<]*<\/span>/<span id="app-version">v'$NEW_VERSION'<\/span>/' ui/index.html
+          
+          echo "Updated version to $NEW_VERSION in all files"
+
+      - name: Commit version changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src-tauri/tauri.conf.json src-tauri/Cargo.toml ui/index.html
+          git commit -m "🔖 RELEASE: Bump version to v${{ steps.version.outputs.new-version }}
+
+Version bump: ${{ steps.version.outputs.current-version }} → ${{ steps.version.outputs.new-version }}
+Type: ${{ github.event.inputs.version_type }}${{ github.event.inputs.custom_version && ' (custom)' || '' }}
+
+This version bump will trigger an automated release when merged to main."
+          git push origin ${{ github.ref_name }}
+
+      - name: Create Pull Request (if not on main)
+        if: github.ref_name != 'main'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "🔖 RELEASE: Bump version to v${{ steps.version.outputs.new-version }}"
+          title: "🔖 Release v${{ steps.version.outputs.new-version }}"
+          body: |
+            ## Version Bump: ${{ steps.version.outputs.current-version }} → ${{ steps.version.outputs.new-version }}
+            
+            **Type**: ${{ github.event.inputs.version_type }}${{ github.event.inputs.custom_version && ' (custom version)' || '' }}
+            
+            ### Changes
+            - Updated `src-tauri/tauri.conf.json` version
+            - Updated `src-tauri/Cargo.toml` version  
+            - Updated `ui/index.html` version display
+            
+            ### Next Steps
+            When this PR is merged to main, it will automatically trigger:
+            - ✅ New git tag creation (`v${{ steps.version.outputs.new-version }}`)
+            - ✅ GitHub release creation with release notes
+            - ✅ Cross-platform builds (macOS, Windows, Linux)
+            - ✅ Artifact uploads to the release
+            
+            ### Release Artifacts
+            The automated release will include:
+            - **macOS**: `.dmg` installer and `.app` bundle
+            - **Windows**: `.msi` installer and `.exe` executable
+            - **Linux**: `.AppImage` and `.deb` package
+            
+            **Ready for review and merge!** 🚀
+          branch: release/v${{ steps.version.outputs.new-version }}
+          delete-branch: true
+
+      - name: Summary
+        run: |
+          echo "## Version Bump Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Previous version**: ${{ steps.version.outputs.current-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **New version**: ${{ steps.version.outputs.new-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bump type**: ${{ github.event.inputs.version_type }}${{ github.event.inputs.custom_version && ' (custom)' || '' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.ref_name }}" != "main" ]; then
+            echo "A pull request has been created for this version bump." >> $GITHUB_STEP_SUMMARY
+            echo "Merge it to main to trigger the automated release." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Version updated on main branch." >> $GITHUB_STEP_SUMMARY
+            echo "The automated release will be triggered shortly." >> $GITHUB_STEP_SUMMARY
+          fi
