@@ -157,7 +157,7 @@ Temporary Items
 *.tmp
 
 # Tauri specific
-/src-tauri/icons/
+
 /src-tauri/target/
 /src-tauri/Cargo.lock
 
