@@ -130,6 +130,27 @@ body {
     gap: 0.25rem;
 }
 
+.theme-toggle-button {
+    background: var(--button-primary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: bold;
+    min-width: 24px;
+    transition: background-color 0.2s;
+}
+
+.theme-toggle-button:hover {
+    background: var(--button-primary-hover);
+}
+
+.theme-toggle-button:active {
+    transform: scale(0.95);
+}
+
 .layout-controls {
     display: flex;
     align-items: center;

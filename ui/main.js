@@ -1315,12 +1315,14 @@ function applyDarkMode() {
         if (darkModeToggleBtn) {
             darkModeToggleBtn.textContent = '☀️';
             darkModeToggleBtn.title = 'Toggle light mode';
+            darkModeToggleBtn.setAttribute('aria-checked', 'true');
         }
     } else {
         document.body.classList.remove('dark-mode');
         if (darkModeToggleBtn) {
             darkModeToggleBtn.textContent = '🌙';
             darkModeToggleBtn.title = 'Toggle dark mode';
+            darkModeToggleBtn.setAttribute('aria-checked', 'false');
         }
     }
     console.log('Dark mode:', darkMode ? 'enabled' : 'disabled');
@@ -1329,8 +1331,8 @@ function applyDarkMode() {
 async function saveDarkModePreference() {
     try {
         await window.invoke('save_dark_mode_preference', {
-            darkMode: darkMode,
-            dataDir: dataDir
+            dark_mode: darkMode,
+            data_dir: dataDir
         });
         console.log('Dark mode preference saved:', darkMode);
     } catch (error) {
@@ -1341,7 +1343,7 @@ async function saveDarkModePreference() {
 async function loadDarkModePreference() {
     try {
         darkMode = await window.invoke('load_dark_mode_preference', {
-            dataDir: dataDir
+            data_dir: dataDir
         });
         applyDarkMode();
         console.log('Dark mode preference loaded:', darkMode);
