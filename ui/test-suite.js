@@ -455,6 +455,193 @@ describe('Custom Modal Functions', () => {
     });
 });
 
+describe('Calendar Functionality', () => {
+    test('should update calendar month/year display', () => {
+        // Mock calendar elements
+        const mockCalendarMonthYear = { textContent: '' };
+        const mockCalendarGrid = { innerHTML: '', appendChild: () => {} };
+        
+        window.calendarMonthYear = mockCalendarMonthYear;
+        window.calendarGrid = mockCalendarGrid;
+        window.calendarEvents = {};
+        
+        // Set test date
+        calendarDate = new Date('2024-01-15');
+        
+        updateCalendar();
+        
+        assert.equal(mockCalendarMonthYear.textContent, 'January 2024');
+    });
+
+    test('should navigate calendar months correctly', () => {
+        calendarDate = new Date('2024-01-15');
+        
+        // Mock updateCalendar to prevent DOM manipulation
+        const originalUpdateCalendar = window.updateCalendar;
+        let updateCalendarCalled = false;
+        window.updateCalendar = () => { updateCalendarCalled = true; };
+        
+        // Navigate to next month
+        navigateMonth(1);
+        assert.equal(calendarDate.getMonth(), 1); // February (0-indexed)
+        assert.truthy(updateCalendarCalled);
+        
+        // Navigate to previous month
+        updateCalendarCalled = false;
+        navigateMonth(-1);
+        assert.equal(calendarDate.getMonth(), 0); // January
+        assert.truthy(updateCalendarCalled);
+        
+        // Restore original function
+        window.updateCalendar = originalUpdateCalendar;
+    });
+
+    test('should toggle calendar pane visibility', () => {
+        const mockCalendarPane = {
+            classList: {
+                contains: function(className) { return this._classes.includes(className); },
+                toggle: function(className) { 
+                    const index = this._classes.indexOf(className);
+                    if (index > -1) {
+                        this._classes.splice(index, 1);
+                    } else {
+                        this._classes.push(className);
+                    }
+                },
+                _classes: []
+            }
+        };
+        const mockToggleBtn = { textContent: '' };
+        
+        window.calendarPane = mockCalendarPane;
+        window.toggleCalendarBtn = mockToggleBtn;
+        
+        // Initially expanded
+        toggleCalendarPane();
+        assert.truthy(mockCalendarPane.classList.contains('collapsed'));
+        assert.equal(mockToggleBtn.textContent, '+');
+        
+        // Toggle back to expanded
+        toggleCalendarPane();
+        assert.falsy(mockCalendarPane.classList.contains('collapsed'));
+        assert.equal(mockToggleBtn.textContent, '−');
+    });
+
+    test('should add calendar events correctly', async () => {
+        const testDate = new Date('2024-01-15');
+        const eventText = 'Meeting with team';
+        
+        // Mock calendar events storage
+        window.calendarEvents = {};
+        
+        // Mock window.invoke for creating todo
+        const originalInvoke = window.invoke;
+        let todoCreated = false;
+        window.invoke = async (command, args) => {
+            if (command === 'load_day_data') {
+                return { todos: [], notes: '', date: args.date };
+            } else if (command === 'save_day_data') {
+                todoCreated = true;
+                return true;
+            } else if (command === 'get_app_data_dir') {
+                return '/test/data';
+            }
+            return originalInvoke(command, args);
+        };
+        
+        // Mock updateCalendar
+        let calendarUpdated = false;
+        const originalUpdateCalendar = window.updateCalendar;
+        window.updateCalendar = () => { calendarUpdated = true; };
+        
+        // Set dataDir for the test
+        window.dataDir = '/test/data';
+        
+        await addCalendarEvent(testDate, eventText);
+        
+        // Check that event was stored
+        assert.truthy(calendarEvents['2024-01-15']);
+        assert.lengthOf(calendarEvents['2024-01-15'], 1);
+        assert.equal(calendarEvents['2024-01-15'][0], eventText);
+        
+        // Check that todo was created
+        assert.truthy(todoCreated);
+        
+        // Check that calendar was updated
+        assert.truthy(calendarUpdated);
+        
+        // Restore original functions
+        window.invoke = originalInvoke;
+        window.updateCalendar = originalUpdateCalendar;
+    });
+
+    test('should navigate to selected date', async () => {
+        const testDate = new Date('2024-02-20');
+        const originalLoadDayData = window.loadDayData;
+        const originalUpdateCalendar = window.updateCalendar;
+        
+        let loadDayDataCalled = false;
+        let updateCalendarCalled = false;
+        
+        window.loadDayData = async () => { loadDayDataCalled = true; };
+        window.updateCalendar = () => { updateCalendarCalled = true; };
+        
+        await navigateToDate(testDate);
+        
+        // Check that current date was updated
+        assert.equal(currentDate.toDateString(), testDate.toDateString());
+        
+        // Check that calendar date was updated
+        assert.equal(calendarDate.toDateString(), testDate.toDateString());
+        
+        // Check that functions were called
+        assert.truthy(loadDayDataCalled);
+        assert.truthy(updateCalendarCalled);
+        
+        // Restore original functions
+        window.loadDayData = originalLoadDayData;
+        window.updateCalendar = originalUpdateCalendar;
+    });
+
+    test('should create todo from calendar event with correct format', async () => {
+        const testDate = new Date('2024-01-15');
+        const eventText = 'Doctor appointment';
+        
+        // Mock data directory
+        window.dataDir = '/test/data';
+        
+        // Mock invoke calls
+        const originalInvoke = window.invoke;
+        let savedData = null;
+        
+        window.invoke = async (command, args) => {
+            if (command === 'load_day_data') {
+                return { todos: [], notes: '', date: args.date };
+            } else if (command === 'save_day_data') {
+                savedData = args.data;
+                return true;
+            } else if (command === 'get_app_data_dir') {
+                return '/test/data';
+            }
+            return originalInvoke(command, args);
+        };
+        
+        await createTodoFromEvent(testDate, eventText);
+        
+        // Check that todo was created with correct format
+        assert.truthy(savedData);
+        assert.lengthOf(savedData.todos, 1);
+        assert.equal(savedData.todos[0].text, '📅 Doctor appointment');
+        assert.equal(savedData.todos[0].symbol, '•');
+        assert.falsy(savedData.todos[0].completed);
+        assert.truthy(savedData.todos[0].id);
+        assert.truthy(savedData.todos[0].createdAt);
+        
+        // Restore original function
+        window.invoke = originalInvoke;
+    });
+});
+
 describe('Integration Tests', () => {
     test('should handle complete todo workflow', async () => {
         // Reset state
