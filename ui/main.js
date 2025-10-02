@@ -876,6 +876,7 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
 async function addCalendarEvent(date, eventText) {
     try {
         const dateStr = formatDate(date);
+        console.log(`Adding calendar event: "${eventText}" on ${dateStr}`);
         
         // Store event in calendar events
         if (!calendarEvents[dateStr]) {
@@ -889,7 +890,7 @@ async function addCalendarEvent(date, eventText) {
         // Update calendar display
         updateCalendar();
         
-        console.log(`Added event "${eventText}" on ${dateStr}`);
+        console.log(`Successfully added event "${eventText}" on ${dateStr}`);
     } catch (error) {
         console.error('Failed to add calendar event:', error);
         showCustomAlert('Error', 'Failed to add calendar event: ' + error.message);
@@ -901,36 +902,48 @@ async function createTodoFromEvent(date, eventText) {
     try {
         // Load the day data for the event date
         const dateStr = formatDate(date);
+        console.log(`Creating todo from event: "${eventText}" for date ${dateStr}`);
+        console.log(`Current dataDir: ${dataDir}`);
+        
         const dayData = await window.invoke('load_day_data', { 
             date: dateStr, 
             dataDir: dataDir 
         });
         
-        // Add the event as a todo item
-        const newTodo = {
-            id: 'todo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-            text: `📅 ${eventText}`,
-            completed: false,
-            symbol: '•',
-            createdAt: new Date().toISOString()
-        };
+        console.log(`Loaded day data for ${dateStr}:`, dayData);
         
+        // Ensure the dayData has the correct date field (the backend expects a date field)
+        if (!dayData.date) {
+            dayData.date = dateStr;
+        }
+        
+        // Create the todo item using the backend command (same as regular todo creation)
+        const newTodo = await window.invoke('create_todo_item', {
+            text: `📅 ${eventText}`
+        });
+        
+        console.log(`Created new todo via backend:`, newTodo);
         dayData.todos.push(newTodo);
+        console.log(`Day data after adding todo:`, dayData);
         
         // Save the updated day data
         await window.invoke('save_day_data', {
-            date: dateStr,
-            data: dayData,
+            dayData: dayData,
             dataDir: dataDir
         });
         
+        console.log(`Saved day data for ${dateStr}`);
+        
         // If this is the current day, update the UI
         if (dateStr === formatDate(currentDate)) {
+            console.log(`This is the current day (${formatDate(currentDate)}), updating UI`);
             currentDayData = dayData;
             updateUI();
+        } else {
+            console.log(`This is not the current day (current: ${formatDate(currentDate)}, event: ${dateStr})`);
         }
         
-        console.log(`Created todo item for event on ${dateStr}`);
+        console.log(`Successfully created todo item for event on ${dateStr}`);
     } catch (error) {
         console.error('Failed to create todo from event:', error);
         throw error;
