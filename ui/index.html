@@ -22,10 +22,34 @@
                     <button id="zoom-in" class="zoom-button" title="Increase text size (Cmd/Ctrl + +)">+</button>
                     <button id="zoom-reset" class="zoom-button" title="Reset text size (Cmd/Ctrl + 0)">Reset</button>
                 </div>
+                <div class="layout-controls">
+                    <button id="reset-panels" class="reset-button" title="Reset panel sizes">Reset Layout</button>
+                </div>
             </div>
         </header>
 
         <div class="main-content">
+            <!-- Calendar Pane -->
+            <div class="calendar-pane" id="calendar-pane">
+                <div class="pane-header">
+                    <h2>Calendar</h2>
+                    <button id="toggle-calendar" class="toggle-btn" title="Hide calendar">−</button>
+                </div>
+                <div class="calendar-content">
+                    <div class="calendar-header">
+                        <button id="prev-month" class="calendar-nav-btn" title="Previous month">‹</button>
+                        <h3 id="calendar-month-year">Loading...</h3>
+                        <button id="next-month" class="calendar-nav-btn" title="Next month">›</button>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid">
+                        <!-- Calendar will be dynamically generated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resize Handle 1: Between Calendar and Todo -->
+            <div class="resize-handle" id="resize-handle-1" data-panels="calendar,todo"></div>
+
             <!-- Todo List Pane -->
             <div class="todo-pane">
                 <div class="pane-header">
@@ -81,6 +105,9 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Resize Handle 2: Between Todo and Notes -->
+            <div class="resize-handle" id="resize-handle-2" data-panels="todo,notes"></div>
 
             <!-- Notes Pane -->
             <div class="notes-pane" id="notes-pane">
