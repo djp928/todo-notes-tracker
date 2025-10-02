@@ -142,28 +142,6 @@ async function initApp() {
         // Initialize zoom level
         applyZoom();
         
-        // Test zoom functionality after a short delay
-        setTimeout(() => {
-            console.log('Testing zoom functionality after initialization...');
-            console.log('Zoom buttons:', {
-                zoomIn: zoomInBtn,
-                zoomOut: zoomOutBtn, 
-                zoomReset: zoomResetBtn,
-                zoomLevel: zoomLevelEl
-            });
-            
-            // Test if we can call zoom functions
-            console.log('Current zoom level:', zoomLevel);
-            console.log('Testing zoom in function...');
-            try {
-                const oldLevel = zoomLevel;
-                zoomIn();
-                console.log('Zoom level after zoomIn():', zoomLevel, 'Changed:', zoomLevel !== oldLevel);
-            } catch (e) {
-                console.error('Error testing zoomIn:', e);
-            }
-        }, 1000);
-        
         console.log('App initialized successfully');
         
     } catch (error) {
