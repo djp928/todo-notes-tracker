@@ -67,6 +67,32 @@ body {
     border-radius: 6px;
 }
 
+.layout-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.reset-button {
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.reset-button:hover {
+    background: #1e7e34;
+}
+
+.reset-button:active {
+    transform: scale(0.95);
+}
+
 .zoom-button {
     background: #007bff;
     color: white;
@@ -118,13 +144,12 @@ body {
 .main-content {
     flex: 1;
     display: flex;
-    gap: 1rem;
     padding: 1rem;
     overflow: hidden;
 }
 
 /* Pane styles */
-.todo-pane, .notes-pane {
+.todo-pane, .notes-pane, .calendar-pane {
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -133,19 +158,53 @@ body {
     position: relative;
 }
 
+.calendar-pane {
+    width: 320px;
+    min-width: 200px;
+    max-width: 600px;
+    flex-shrink: 0;
+}
+
+.calendar-pane.collapsed {
+    width: 40px !important;
+    min-width: 40px;
+    max-width: 40px;
+    overflow: hidden;
+}
+
+.calendar-pane.collapsed .pane-header {
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+    width: 40px;
+    height: 100%;
+    padding: 1rem 0;
+}
+
+.calendar-pane.collapsed .pane-header h2 {
+    display: none;
+}
+
+.calendar-pane.collapsed .calendar-content {
+    display: none;
+}
+
 .todo-pane {
     flex: 1;
-    min-width: 400px;
+    min-width: 300px;
 }
 
 .notes-pane {
-    flex: 0 0 300px;
-    transition: flex 0.3s ease;
+    width: 300px;
+    min-width: 200px;
+    max-width: 500px;
+    flex-shrink: 0;
 }
 
 .notes-pane.collapsed {
-    flex: 0 0 auto;
-    width: 40px;
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    flex-shrink: 0;
     overflow: hidden;
 }
 
@@ -566,4 +625,240 @@ body {
     opacity: 0.7;
     z-index: 1000;
     pointer-events: none;
+}
+
+/* Calendar Styles */
+.calendar-content {
+    flex: 1;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.calendar-nav-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.calendar-nav-btn:hover {
+    background: #5a6268;
+}
+
+#calendar-month-year {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.calendar-day {
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 0.25rem;
+    min-height: 60px;
+    background: white;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.calendar-day:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
+}
+
+.calendar-day.other-month {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.calendar-day.today {
+    background: #e3f2fd;
+    border-color: #007bff;
+    box-shadow: 0 0 0 1px rgba(0,123,255,0.25);
+}
+
+.calendar-day.selected {
+    background: #007bff;
+    color: white;
+    border-color: #0056b3;
+}
+
+.calendar-day-header {
+    background: #6c757d;
+    color: white;
+    text-align: center;
+    padding: 0.5rem 0.25rem;
+    font-weight: 600;
+    font-size: 0.7rem;
+    border-radius: 4px 4px 0 0;
+    margin: -0.25rem -0.25rem 0.25rem -0.25rem;
+}
+
+.calendar-day-number {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #2c3e50;
+}
+
+.calendar-day.other-month .calendar-day-number {
+    color: #6c757d;
+}
+
+.calendar-day.selected .calendar-day-number {
+    color: white;
+}
+
+.calendar-event-input {
+    width: 100%;
+    border: 1px solid #ced4da;
+    border-radius: 3px;
+    padding: 0.125rem 0.25rem;
+    font-size: 0.65rem;
+    outline: none;
+    background: white;
+    margin-bottom: 0.125rem;
+}
+
+.calendar-event-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 1px rgba(0,123,255,0.25);
+}
+
+.calendar-event-input::placeholder {
+    color: #999;
+    font-size: 0.6rem;
+}
+
+.calendar-events {
+    flex: 1;
+    overflow-y: auto;
+    margin-top: 0.25rem;
+}
+
+.calendar-event {
+    background: #28a745;
+    color: white;
+    padding: 0.125rem 0.25rem;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    margin-bottom: 0.125rem;
+    word-break: break-word;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.calendar-event:hover {
+    background: #1e7e34;
+}
+
+.calendar-day.selected .calendar-event {
+    background: rgba(255,255,255,0.2);
+}
+
+.calendar-day.selected .calendar-event:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* Responsive calendar */
+@media (max-width: 768px) {
+    .calendar-pane {
+        flex: 0 0 280px;
+    }
+    
+    .calendar-day {
+        min-height: 50px;
+        font-size: 0.7rem;
+    }
+    
+    .calendar-event-input {
+        font-size: 0.6rem;
+    }
+    
+    .calendar-event {
+        font-size: 0.55rem;
+    }
+}
+
+/* Resize Handle Styles */
+.resize-handle {
+    width: 8px;
+    background: #e9ecef;
+    cursor: col-resize;
+    position: relative;
+    border-radius: 4px;
+    margin: 0 4px;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+}
+
+.resize-handle:hover {
+    background: #007bff;
+}
+
+.resize-handle:active {
+    background: #0056b3;
+}
+
+.resize-handle::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 3px;
+    height: 30px;
+    background: repeating-linear-gradient(
+        to bottom,
+        #6c757d,
+        #6c757d 2px,
+        transparent 2px,
+        transparent 4px
+    );
+    pointer-events: none;
+}
+
+/* Panel sizing for resizing */
+.main-content.resizing .calendar-pane,
+.main-content.resizing .notes-pane {
+    transition: none !important;
+}
+
+.main-content.resizing * {
+    user-select: none;
+    pointer-events: none;
+}
+
+.main-content.resizing .resize-handle {
+    pointer-events: all;
 }
