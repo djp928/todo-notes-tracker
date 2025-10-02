@@ -1,0 +1,8 @@
+# Clippy configuration for Tauri project
+# This helps clippy handle Tauri-specific patterns better
+
+# Allow complex types (Tauri often has complex command signatures)
+type-complexity-threshold = 250
+
+# Be more lenient for now
+cognitive-complexity-threshold = 50

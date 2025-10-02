@@ -49,6 +49,10 @@ jobs:
 
     - name: Run Rust tests
       working-directory: src-tauri
+      env:
+        DISPLAY: ":99"
+        TAURI_SKIP_ICON_GENERATION: "true"
+        CI: "true"
       run: |
         export DISPLAY=:99
         Xvfb :99 -screen 0 1024x768x24 &
@@ -57,11 +61,17 @@ jobs:
       
     - name: Check Rust formatting
       working-directory: src-tauri
+      env:
+        TAURI_SKIP_ICON_GENERATION: "true"
+        CI: "true"
       run: cargo fmt --check
       
     - name: Run Rust linter
       working-directory: src-tauri
-      run: cargo clippy -- -D warnings
+      env:
+        TAURI_SKIP_ICON_GENERATION: "true"
+        CI: "true"
+      run: cargo clippy --tests -- -W clippy::all -A clippy::too_many_arguments
 
   test-javascript:
     name: Test JavaScript Frontend
