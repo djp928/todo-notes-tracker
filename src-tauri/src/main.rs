@@ -3,6 +3,7 @@
 
 use chrono::{DateTime, Local, NaiveDate};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use tauri::{Emitter, Manager, Window};
@@ -145,6 +146,42 @@ async fn stop_pomodoro_timer() -> Result<(), String> {
     Ok(())
 }
 
+// Save calendar events to persistent storage
+#[tauri::command]
+async fn save_calendar_events(
+    events: HashMap<String, Vec<String>>,
+    data_dir: String,
+) -> Result<(), String> {
+    let file_path = PathBuf::from(data_dir).join("calendar_events.json");
+
+    let json_content = serde_json::to_string_pretty(&events)
+        .map_err(|e| format!("Failed to serialize calendar events: {}", e))?;
+
+    fs::write(&file_path, json_content)
+        .map_err(|e| format!("Failed to write calendar events file: {}", e))?;
+
+    Ok(())
+}
+
+// Load calendar events from persistent storage
+#[tauri::command]
+async fn load_calendar_events(data_dir: String) -> Result<HashMap<String, Vec<String>>, String> {
+    let file_path = PathBuf::from(data_dir).join("calendar_events.json");
+
+    if file_path.exists() {
+        let file_content = fs::read_to_string(&file_path)
+            .map_err(|e| format!("Failed to read calendar events file: {}", e))?;
+
+        let events: HashMap<String, Vec<String>> = serde_json::from_str(&file_content)
+            .map_err(|e| format!("Failed to parse calendar events: {}", e))?;
+
+        Ok(events)
+    } else {
+        // Return empty HashMap if file doesn't exist
+        Ok(HashMap::new())
+    }
+}
+
 fn main() {
     // Only run the Tauri app if we're not in test mode
     #[cfg(not(test))]
@@ -157,7 +194,9 @@ fn main() {
                 create_todo_item,
                 start_pomodoro_timer,
                 stop_pomodoro_timer,
-                send_notification
+                send_notification,
+                save_calendar_events,
+                load_calendar_events
             ])
             .run(tauri::generate_context!())
             .expect("error while running tauri application");
@@ -394,5 +433,79 @@ mod tests {
         let json = serde_json::to_string(&todo).unwrap();
         let deserialized: TodoItem = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.text, special_text);
+    }
+
+    #[tokio::test]
+    async fn test_save_and_load_calendar_events() {
+        let temp_dir = setup_test_dir();
+        let data_dir = temp_dir.path().to_string_lossy().to_string();
+
+        // Create test calendar events
+        let mut events = HashMap::new();
+        events.insert(
+            "2024-01-15".to_string(),
+            vec!["Meeting".to_string(), "Lunch".to_string()],
+        );
+        events.insert("2024-01-16".to_string(), vec!["Dentist".to_string()]);
+
+        // Save calendar events
+        let save_result = save_calendar_events(events.clone(), data_dir.clone()).await;
+        assert!(save_result.is_ok());
+
+        // Load calendar events back
+        let load_result = load_calendar_events(data_dir).await;
+        assert!(load_result.is_ok());
+
+        let loaded_events = load_result.unwrap();
+        assert_eq!(loaded_events.len(), 2);
+        assert_eq!(
+            loaded_events.get("2024-01-15").unwrap(),
+            &vec!["Meeting".to_string(), "Lunch".to_string()]
+        );
+        assert_eq!(
+            loaded_events.get("2024-01-16").unwrap(),
+            &vec!["Dentist".to_string()]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_load_nonexistent_calendar_events() {
+        let temp_dir = setup_test_dir();
+        let data_dir = temp_dir.path().to_string_lossy().to_string();
+
+        // Try to load calendar events from empty directory
+        let result = load_calendar_events(data_dir).await;
+        assert!(result.is_ok());
+
+        let events = result.unwrap();
+        assert!(events.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_calendar_events_persistence() {
+        let temp_dir = setup_test_dir();
+        let data_dir = temp_dir.path().to_string_lossy().to_string();
+
+        // Save some events
+        let mut events1 = HashMap::new();
+        events1.insert("2024-01-15".to_string(), vec!["Event 1".to_string()]);
+        save_calendar_events(events1, data_dir.clone())
+            .await
+            .unwrap();
+
+        // Load and modify
+        let mut loaded_events = load_calendar_events(data_dir.clone()).await.unwrap();
+        loaded_events.insert("2024-01-16".to_string(), vec!["Event 2".to_string()]);
+
+        // Save modified events
+        save_calendar_events(loaded_events.clone(), data_dir.clone())
+            .await
+            .unwrap();
+
+        // Load again and verify
+        let final_events = load_calendar_events(data_dir).await.unwrap();
+        assert_eq!(final_events.len(), 2);
+        assert!(final_events.contains_key("2024-01-15"));
+        assert!(final_events.contains_key("2024-01-16"));
     }
 }

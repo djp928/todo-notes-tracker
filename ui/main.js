@@ -111,6 +111,9 @@ async function initApp() {
         // Load today's data
         await loadDayData(currentDate);
         
+        // Load calendar events
+        await loadCalendarEvents();
+        
         // Set up event listeners
         setupEventListeners();
         
@@ -884,6 +887,9 @@ async function addCalendarEvent(date, eventText) {
         }
         calendarEvents[dateStr].push(eventText);
         
+        // Save calendar events to storage
+        await saveCalendarEvents();
+        
         // Create a corresponding todo item
         await createTodoFromEvent(date, eventText);
         
@@ -972,6 +978,34 @@ async function navigateToDate(date) {
     calendarDate = new Date(date); // Update calendar view to show the selected month
     await loadDayData(currentDate);
     updateCalendar(); // Refresh calendar to show new selection
+}
+
+// Save calendar events to persistent storage
+async function saveCalendarEvents() {
+    try {
+        await window.invoke('save_calendar_events', {
+            events: calendarEvents,
+            dataDir: dataDir
+        });
+        console.log('Calendar events saved successfully');
+    } catch (error) {
+        console.error('Failed to save calendar events:', error);
+    }
+}
+
+// Load calendar events from persistent storage
+async function loadCalendarEvents() {
+    try {
+        const events = await window.invoke('load_calendar_events', {
+            dataDir: dataDir
+        });
+        calendarEvents = events || {};
+        console.log('Calendar events loaded:', calendarEvents);
+    } catch (error) {
+        console.error('Failed to load calendar events:', error);
+        // Initialize with empty object if loading fails
+        calendarEvents = {};
+    }
 }
 
 // Utility functions
