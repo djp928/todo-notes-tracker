@@ -1,0 +1,273 @@
+name: 'Release'
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - '.gitignore'
+      - '.github/**'
+      - '!.github/workflows/release.yml'
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  # Job 1: Determine if a release is needed and calculate version
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      should-release: ${{ steps.version-check.outputs.should-release }}
+      new-version: ${{ steps.version-check.outputs.new-version }}
+      version-type: ${{ steps.version-check.outputs.version-type }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if release needed
+        id: version-check
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+          
+          # Get current version from tauri.conf.json
+          CURRENT_VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Remove 'v' prefix from tag for comparison
+          TAG_VERSION=${LATEST_TAG#v}
+          
+          # Check if version has changed
+          if [ "$CURRENT_VERSION" != "$TAG_VERSION" ]; then
+            echo "Version changed from $TAG_VERSION to $CURRENT_VERSION"
+            echo "should-release=true" >> $GITHUB_OUTPUT
+            echo "new-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            
+            # Determine version type (major, minor, patch)
+            IFS='.' read -ra CURRENT <<< "$CURRENT_VERSION"
+            IFS='.' read -ra PREVIOUS <<< "$TAG_VERSION"
+            
+            if [ "${CURRENT[0]}" -gt "${PREVIOUS[0]}" ]; then
+              echo "version-type=major" >> $GITHUB_OUTPUT
+            elif [ "${CURRENT[1]}" -gt "${PREVIOUS[1]}" ]; then
+              echo "version-type=minor" >> $GITHUB_OUTPUT
+            else
+              echo "version-type=patch" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No version change detected"
+            echo "should-release=false" >> $GITHUB_OUTPUT
+          fi
+
+  # Job 2: Build and release if version changed
+  release:
+    needs: version
+    if: needs.version.outputs.should-release == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            target: 'x86_64-apple-darwin'
+            arch: 'x64'
+            rust-target: 'x86_64-apple-darwin'
+          - platform: 'macos-latest' 
+            target: 'aarch64-apple-darwin'
+            arch: 'arm64'
+            rust-target: 'aarch64-apple-darwin'
+          - platform: 'ubuntu-latest'
+            target: 'x86_64-unknown-linux-gnu'
+            arch: 'x64'
+            rust-target: 'x86_64-unknown-linux-gnu'
+          - platform: 'windows-latest'
+            target: 'x86_64-pc-windows-msvc'
+            arch: 'x64'
+            rust-target: 'x86_64-pc-windows-msvc'
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-target }}
+
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.rust-target }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies (Ubuntu)
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.0-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-${{ matrix.arch }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-cargo-
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2.0" --locked
+
+      - name: Build Tauri app
+        run: |
+          cd src-tauri
+          cargo tauri build --target ${{ matrix.rust-target }}
+
+      - name: Prepare artifacts (macOS)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          mkdir -p artifacts
+          # Copy .app bundle
+          cp -r "src-tauri/target/${{ matrix.rust-target }}/release/bundle/macos/Todo Notes Tracker.app" artifacts/
+          # Create DMG if it exists
+          if [ -f "src-tauri/target/${{ matrix.rust-target }}/release/bundle/dmg/Todo Notes Tracker_${{ needs.version.outputs.new-version }}_${{ matrix.arch }}.dmg" ]; then
+            cp "src-tauri/target/${{ matrix.rust-target }}/release/bundle/dmg/"*.dmg artifacts/
+          fi
+
+      - name: Prepare artifacts (Linux)
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          mkdir -p artifacts
+          # Copy AppImage if it exists
+          if ls src-tauri/target/${{ matrix.rust-target }}/release/bundle/appimage/*.AppImage 1> /dev/null 2>&1; then
+            cp src-tauri/target/${{ matrix.rust-target }}/release/bundle/appimage/*.AppImage artifacts/
+          fi
+          # Copy deb package if it exists
+          if ls src-tauri/target/${{ matrix.rust-target }}/release/bundle/deb/*.deb 1> /dev/null 2>&1; then
+            cp src-tauri/target/${{ matrix.rust-target }}/release/bundle/deb/*.deb artifacts/
+          fi
+          # Copy the binary
+          cp "src-tauri/target/${{ matrix.rust-target }}/release/todo-notes-tracker" artifacts/
+
+      - name: Prepare artifacts (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          mkdir artifacts
+          # Copy MSI installer if it exists
+          if (Test-Path "src-tauri/target/${{ matrix.rust-target }}/release/bundle/msi/*.msi") {
+            Copy-Item "src-tauri/target/${{ matrix.rust-target }}/release/bundle/msi/*.msi" artifacts/
+          }
+          # Copy executable
+          Copy-Item "src-tauri/target/${{ matrix.rust-target }}/release/todo-notes-tracker.exe" artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: todo-notes-tracker-${{ matrix.target }}
+          path: artifacts/*
+          retention-days: 30
+
+  # Job 3: Create GitHub release with all artifacts
+  create-release:
+    needs: [version, release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          # Get commits since last tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LATEST_TAG" ]; then
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline --pretty=format:"- %s" | head -20)
+          else
+            COMMITS=$(git log --oneline --pretty=format:"- %s" | head -10)
+          fi
+          
+          # Create release notes
+          cat > release_notes.md << EOF
+          # Todo Notes Tracker v${{ needs.version.outputs.new-version }}
+          
+          A ${{ needs.version.outputs.version-type }} release with new features and improvements.
+          
+          ## What's Changed
+          $COMMITS
+          
+          ## Download
+          Choose the appropriate package for your platform:
+          
+          - **macOS**: Download the \`.dmg\` file or \`.app\` bundle
+          - **Windows**: Download the \`.msi\` installer or \`.exe\` file  
+          - **Linux**: Download the \`.AppImage\` or \`.deb\` package
+          
+          ## Installation
+          
+          ### macOS
+          1. Download the DMG file
+          2. Open it and drag Todo Notes Tracker to Applications
+          3. Launch from Applications folder
+          
+          ### Windows  
+          1. Download the MSI installer
+          2. Run the installer and follow the prompts
+          3. Launch from Start Menu or Desktop shortcut
+          
+          ### Linux
+          1. Download the AppImage file
+          2. Make it executable: \`chmod +x Todo-Notes-Tracker*.AppImage\`
+          3. Run the AppImage file
+          
+          Or install the DEB package: \`sudo dpkg -i todo-notes-tracker*.deb\`
+          
+          ## Features
+          - ✅ Daily todo management with bullet journal symbols
+          - ✅ Calendar view with event planning
+          - ✅ Notes section for daily thoughts
+          - ✅ Pomodoro timer with notifications
+          - ✅ Text zoom for accessibility
+          - ✅ Data persistence and cross-platform support
+          - ✅ Resizable panels for customized workspace
+          
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/$LATEST_TAG...v${{ needs.version.outputs.new-version }}
+          EOF
+
+      - name: Create release tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ needs.version.outputs.new-version }}" -m "Release v${{ needs.version.outputs.new-version }}"
+          git push origin "v${{ needs.version.outputs.new-version }}"
+
+      - name: Create GitHub Release
+        uses: ncipollo/create-release@v1
+        with:
+          tag: v${{ needs.version.outputs.new-version }}
+          name: Todo Notes Tracker v${{ needs.version.outputs.new-version }}
+          bodyFile: release_notes.md
+          artifacts: "release-artifacts/**/*"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false
+          generateReleaseNotes: false
