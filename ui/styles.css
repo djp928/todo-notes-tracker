@@ -1,6 +1,61 @@
-/* CSS Custom Properties for Zoom */
+/* CSS Custom Properties for Zoom and Theme */
 :root {
     --zoom-scale: 1.0;
+    /* Light mode colors */
+    --bg-primary: #f8f9fa;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f8f9fa;
+    --text-primary: #2c3e50;
+    --text-secondary: #495057;
+    --text-muted: #6c757d;
+    --border-color: #e9ecef;
+    --border-color-hover: #007bff;
+    --shadow: rgba(0,0,0,0.1);
+    --shadow-heavy: rgba(0,0,0,0.3);
+    --input-bg: #ffffff;
+    --input-border: #ced4da;
+    --button-primary: #007bff;
+    --button-primary-hover: #0056b3;
+    --button-secondary: #6c757d;
+    --button-secondary-hover: #5a6268;
+    --calendar-other-month: #f8f9fa;
+    --calendar-today: #e3f2fd;
+    --calendar-today-border: #007bff;
+    --calendar-selected: #007bff;
+    --calendar-selected-border: #0056b3;
+    --todo-selected-bg: #e3f2fd;
+    --todo-selected-border: #2196f3;
+    --todo-hover-bg: #f8f9fa;
+    --modal-overlay: rgba(0, 0, 0, 0.5);
+}
+
+/* Dark mode colors */
+body.dark-mode {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #3d3d3d;
+    --text-primary: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --text-muted: #808080;
+    --border-color: #404040;
+    --border-color-hover: #4a90e2;
+    --shadow: rgba(0,0,0,0.3);
+    --shadow-heavy: rgba(0,0,0,0.6);
+    --input-bg: #3d3d3d;
+    --input-border: #555555;
+    --button-primary: #4a90e2;
+    --button-primary-hover: #357abd;
+    --button-secondary: #555555;
+    --button-secondary-hover: #666666;
+    --calendar-other-month: #252525;
+    --calendar-today: #1e3a5f;
+    --calendar-today-border: #4a90e2;
+    --calendar-selected: #357abd;
+    --calendar-selected-border: #2d6aa3;
+    --todo-selected-bg: #1e3a5f;
+    --todo-selected-border: #4a90e2;
+    --todo-hover-bg: #353535;
+    --modal-overlay: rgba(0, 0, 0, 0.75);
 }
 
 html {
@@ -17,10 +72,11 @@ html {
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-    background-color: #f8f9fa;
-    color: #2c3e50;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     line-height: 1.6;
     font-size: 0.875rem; /* 14px at base scale */
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* App container */
@@ -32,19 +88,20 @@ body {
 
 /* Header */
 .app-header {
-    background: white;
+    background: var(--bg-secondary);
     padding: 1rem 2rem;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px var(--shadow);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .app-header h1 {
     font-size: 1.5rem;
     font-weight: 600;
-    color: #2c3e50;
+    color: var(--text-primary);
 }
 
 .header-controls {
@@ -65,6 +122,12 @@ body {
     padding: 0.25rem;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 6px;
+}
+
+.theme-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 .layout-controls {
@@ -94,7 +157,7 @@ body {
 }
 
 .zoom-button {
-    background: #007bff;
+    background: var(--button-primary);
     color: white;
     border: none;
     border-radius: 4px;
@@ -107,7 +170,7 @@ body {
 }
 
 .zoom-button:hover {
-    background: #0056b3;
+    background: var(--button-primary-hover);
 }
 
 .zoom-button:active {
@@ -117,7 +180,7 @@ body {
 #zoom-level {
     font-size: 0.6875rem; /* 11px at base scale */
     font-weight: bold;
-    color: #333;
+    color: var(--text-primary);
     min-width: 35px;
     text-align: center;
     background: rgba(255, 255, 255, 0.8);
@@ -125,8 +188,12 @@ body {
     border-radius: 3px;
 }
 
+body.dark-mode #zoom-level {
+    background: rgba(0, 0, 0, 0.3);
+}
+
 .nav-button {
-    background: #6c757d;
+    background: var(--button-secondary);
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -137,7 +204,7 @@ body {
 }
 
 .nav-button:hover {
-    background: #5a6268;
+    background: var(--button-secondary-hover);
 }
 
 /* Main content */
@@ -150,12 +217,13 @@ body {
 
 /* Pane styles */
 .todo-pane, .notes-pane, .calendar-pane {
-    background: white;
+    background: var(--bg-secondary);
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px var(--shadow);
     display: flex;
     flex-direction: column;
     position: relative;
+    transition: background-color 0.3s ease;
 }
 
 .calendar-pane {
@@ -231,7 +299,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--modal-overlay);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -243,11 +311,11 @@ body {
 }
 
 .modal-content {
-    background: white;
+    background: var(--bg-secondary);
     border-radius: 8px;
     min-width: 300px;
     max-width: 500px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 20px var(--shadow-heavy);
     animation: modalAppear 0.2s ease-out;
 }
 
@@ -264,20 +332,21 @@ body {
 
 .modal-header {
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e9ecef;
-    background: #f8f9fa;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
     border-radius: 8px 8px 0 0;
 }
 
 .modal-header h3 {
     margin: 0;
     font-size: 1.2rem;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .modal-body {
     padding: 1.5rem;
     line-height: 1.6;
+    color: var(--text-primary);
 }
 
 .modal-body p {
@@ -287,7 +356,7 @@ body {
 
 .modal-footer {
     padding: 1rem 1.5rem;
-    border-top: 1px solid #e9ecef;
+    border-top: 1px solid var(--border-color);
     display: flex;
     gap: 10px;
     justify-content: flex-end;
@@ -303,37 +372,38 @@ body {
 }
 
 .modal-btn-primary {
-    background: #007bff;
+    background: var(--button-primary);
     color: white;
 }
 
 .modal-btn-primary:hover {
-    background: #0056b3;
+    background: var(--button-primary-hover);
 }
 
 .modal-btn-secondary {
-    background: #6c757d;
+    background: var(--button-secondary);
     color: white;
 }
 
 .modal-btn-secondary:hover {
-    background: #545b62;
+    background: var(--button-secondary-hover);
 }
 
 .pane-header {
     padding: 1rem;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #f8f9fa;
+    background: var(--bg-tertiary);
     border-radius: 8px 8px 0 0;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .pane-header h2 {
     font-size: 1.2rem;
     font-weight: 600;
-    color: #495057;
+    color: var(--text-secondary);
 }
 
 /* Pomodoro controls */
@@ -365,9 +435,11 @@ body {
 
 #pomodoro-duration {
     padding: 0.4rem;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     font-size: 0.9rem;
+    background-color: var(--input-bg);
+    color: var(--text-primary);
 }
 
 /* Todo list */
@@ -382,24 +454,24 @@ body {
     align-items: flex-start;
     gap: 0.75rem;
     padding: 0.75rem 0;
-    border-bottom: 1px solid #f1f3f4;
+    border-bottom: 1px solid var(--border-color);
     transition: background-color 0.2s;
 }
 
 .todo-item:hover {
-    background-color: #f8f9fa;
+    background-color: var(--todo-hover-bg);
 }
 
 .todo-item.selected {
-    background-color: #e3f2fd;
-    border-left: 3px solid #2196f3;
+    background-color: var(--todo-selected-bg);
+    border-left: 3px solid var(--todo-selected-border);
     padding-left: calc(0.75rem - 3px);
 }
 
 .todo-checkbox {
     width: 20px;
     height: 20px;
-    border: 2px solid #6c757d;
+    border: 2px solid var(--text-muted);
     border-radius: 50%;
     cursor: pointer;
     flex-shrink: 0;
@@ -434,7 +506,7 @@ body {
 
 .todo-text.completed {
     text-decoration: line-through;
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 .todo-actions {
@@ -454,13 +526,13 @@ body {
     padding: 0.25rem;
     cursor: pointer;
     border-radius: 3px;
-    color: #6c757d;
+    color: var(--text-muted);
     font-size: 0.8rem;
     transition: background-color 0.2s;
 }
 
 .action-btn:hover {
-    background-color: #e9ecef;
+    background-color: var(--border-color);
 }
 
 .move-btn {
@@ -474,7 +546,7 @@ body {
 /* Add todo */
 .add-todo {
     padding: 1rem;
-    border-top: 1px solid #e9ecef;
+    border-top: 1px solid var(--border-color);
     display: flex;
     gap: 0.5rem;
 }
@@ -482,20 +554,22 @@ body {
 #new-todo-input {
     flex: 1;
     padding: 0.75rem;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     font-size: 1rem;
     outline: none;
     transition: border-color 0.2s;
+    background-color: var(--input-bg);
+    color: var(--text-primary);
 }
 
 #new-todo-input:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    border-color: var(--button-primary);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25);
 }
 
 #add-todo-btn {
-    background: #007bff;
+    background: var(--button-primary);
     color: white;
     border: none;
     padding: 0.75rem 1rem;
@@ -507,7 +581,7 @@ body {
 }
 
 #add-todo-btn:hover {
-    background: #0056b3;
+    background: var(--button-primary-hover);
 }
 
 /* Notes */
@@ -520,12 +594,14 @@ body {
     font-family: inherit;
     font-size: 0.95rem;
     line-height: 1.6;
-    background: transparent;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Toggle button */
 .toggle-btn {
-    background: #6c757d;
+    background: var(--button-secondary);
     color: white;
     border: none;
     width: 24px;
@@ -540,7 +616,7 @@ body {
 }
 
 .toggle-btn:hover {
-    background: #5a6268;
+    background: var(--button-secondary-hover);
 }
 
 /* Pomodoro overlay */
@@ -642,11 +718,11 @@ body {
     justify-content: space-between;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .calendar-nav-btn {
-    background: #6c757d;
+    background: var(--button-secondary);
     color: white;
     border: none;
     width: 32px;
@@ -661,13 +737,13 @@ body {
 }
 
 .calendar-nav-btn:hover {
-    background: #5a6268;
+    background: var(--button-secondary-hover);
 }
 
 #calendar-month-year {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #2c3e50;
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -680,11 +756,11 @@ body {
 }
 
 .calendar-day {
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 0.25rem;
     min-height: 60px;
-    background: white;
+    background: var(--bg-secondary);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -693,29 +769,29 @@ body {
 }
 
 .calendar-day:hover {
-    background: #f8f9fa;
-    border-color: #007bff;
+    background: var(--todo-hover-bg);
+    border-color: var(--border-color-hover);
 }
 
 .calendar-day.other-month {
-    background: #f8f9fa;
-    color: #6c757d;
+    background: var(--calendar-other-month);
+    color: var(--text-muted);
 }
 
 .calendar-day.today {
-    background: #e3f2fd;
-    border-color: #007bff;
-    box-shadow: 0 0 0 1px rgba(0,123,255,0.25);
+    background: var(--calendar-today);
+    border-color: var(--calendar-today-border);
+    box-shadow: 0 0 0 1px rgba(74, 144, 226, 0.25);
 }
 
 .calendar-day.selected {
-    background: #007bff;
+    background: var(--calendar-selected);
     color: white;
-    border-color: #0056b3;
+    border-color: var(--calendar-selected-border);
 }
 
 .calendar-day-header {
-    background: #6c757d;
+    background: var(--button-secondary);
     color: white;
     text-align: center;
     padding: 0.5rem 0.25rem;
@@ -728,11 +804,11 @@ body {
 .calendar-day-number {
     font-weight: 600;
     margin-bottom: 0.25rem;
-    color: #2c3e50;
+    color: var(--text-primary);
 }
 
 .calendar-day.other-month .calendar-day-number {
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 .calendar-day.selected .calendar-day-number {
@@ -741,18 +817,19 @@ body {
 
 .calendar-event-input {
     width: 100%;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--input-border);
     border-radius: 3px;
     padding: 0.125rem 0.25rem;
     font-size: 0.65rem;
     outline: none;
-    background: white;
+    background: var(--input-bg);
+    color: var(--text-primary);
     margin-bottom: 0.125rem;
 }
 
 .calendar-event-input:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 1px rgba(0,123,255,0.25);
+    border-color: var(--button-primary);
+    box-shadow: 0 0 0 1px rgba(74, 144, 226, 0.25);
 }
 
 .calendar-event-input::placeholder {
@@ -813,7 +890,7 @@ body {
 /* Resize Handle Styles */
 .resize-handle {
     width: 8px;
-    background: #e9ecef;
+    background: var(--border-color);
     cursor: col-resize;
     position: relative;
     border-radius: 4px;
@@ -823,11 +900,11 @@ body {
 }
 
 .resize-handle:hover {
-    background: #007bff;
+    background: var(--button-primary);
 }
 
 .resize-handle:active {
-    background: #0056b3;
+    background: var(--button-primary-hover);
 }
 
 .resize-handle::before {
@@ -840,8 +917,8 @@ body {
     height: 30px;
     background: repeating-linear-gradient(
         to bottom,
-        #6c757d,
-        #6c757d 2px,
+        var(--text-muted),
+        var(--text-muted) 2px,
         transparent 2px,
         transparent 4px
     );
