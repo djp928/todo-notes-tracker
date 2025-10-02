@@ -1315,7 +1315,6 @@ function applyDarkMode() {
         if (darkModeToggleBtn) {
             darkModeToggleBtn.textContent = '☀️';
             darkModeToggleBtn.title = 'Switch to light mode';
-            darkModeToggleBtn.setAttribute('aria-label', 'Switch to light mode');
             darkModeToggleBtn.setAttribute('aria-checked', 'true');
         }
     } else {
@@ -1323,7 +1322,6 @@ function applyDarkMode() {
         if (darkModeToggleBtn) {
             darkModeToggleBtn.textContent = '🌙';
             darkModeToggleBtn.title = 'Switch to dark mode';
-            darkModeToggleBtn.setAttribute('aria-label', 'Switch to dark mode');
             darkModeToggleBtn.setAttribute('aria-checked', 'false');
         }
     }
