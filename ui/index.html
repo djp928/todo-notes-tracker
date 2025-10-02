@@ -26,6 +26,24 @@
         </header>
 
         <div class="main-content">
+            <!-- Calendar Pane -->
+            <div class="calendar-pane" id="calendar-pane">
+                <div class="pane-header">
+                    <h2>Calendar</h2>
+                    <button id="toggle-calendar" class="toggle-btn" title="Hide calendar">−</button>
+                </div>
+                <div class="calendar-content">
+                    <div class="calendar-header">
+                        <button id="prev-month" class="calendar-nav-btn" title="Previous month">‹</button>
+                        <h3 id="calendar-month-year">Loading...</h3>
+                        <button id="next-month" class="calendar-nav-btn" title="Next month">›</button>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid">
+                        <!-- Calendar will be dynamically generated -->
+                    </div>
+                </div>
+            </div>
+
             <!-- Todo List Pane -->
             <div class="todo-pane">
                 <div class="pane-header">

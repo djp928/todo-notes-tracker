@@ -52,6 +52,10 @@ let dataDir = '';
 let pomodoroTimer = null;
 let pomodoroInterval = null;
 
+// Calendar state
+let calendarDate = new Date(); // Date for which month is displayed
+let calendarEvents = {}; // Store events by date key (YYYY-MM-DD)
+
 // Zoom state
 let zoomLevel = 1.0;
 const zoomStep = 0.1;
@@ -73,6 +77,14 @@ const pomodoroOverlay = document.getElementById('pomodoro-overlay');
 const timerTask = document.getElementById('timer-task');
 const timerCountdown = document.getElementById('timer-countdown');
 const stopTimerBtn = document.getElementById('stop-timer');
+
+// Calendar DOM elements
+const calendarPane = document.getElementById('calendar-pane');
+const toggleCalendarBtn = document.getElementById('toggle-calendar');
+const calendarGrid = document.getElementById('calendar-grid');
+const calendarMonthYear = document.getElementById('calendar-month-year');
+const prevMonthBtn = document.getElementById('prev-month');
+const nextMonthBtn = document.getElementById('next-month');
 const toggleNotesBtn = document.getElementById('toggle-notes');
 const notesPane = document.getElementById('notes-pane');
 
@@ -101,6 +113,9 @@ async function initApp() {
         
         // Set up event listeners
         setupEventListeners();
+        
+        // Initialize calendar
+        updateCalendar();
         
         // Set up pomodoro completion handler
         // We'll handle this with a simple timeout since listen isn't working
@@ -180,6 +195,17 @@ function setupEventListeners() {
     
     // Toggle notes pane
     toggleNotesBtn.addEventListener('click', toggleNotesPane);
+    
+    // Calendar controls
+    if (toggleCalendarBtn) {
+        toggleCalendarBtn.addEventListener('click', toggleCalendarPane);
+    }
+    if (prevMonthBtn) {
+        prevMonthBtn.addEventListener('click', () => navigateMonth(-1));
+    }
+    if (nextMonthBtn) {
+        nextMonthBtn.addEventListener('click', () => navigateMonth(1));
+    }
     
     // Zoom controls
     console.log('Zoom buttons found:', {
@@ -712,6 +738,227 @@ function toggleNotesPane() {
     }
     
     console.log('Notes pane toggled:', isCollapsed ? 'collapsed' : 'expanded');
+}
+
+// Toggle calendar pane
+function toggleCalendarPane() {
+    console.log('Toggling calendar pane...', { calendarPane, toggleCalendarBtn });
+    
+    if (!calendarPane) {
+        console.error('Calendar pane element not found!');
+        return;
+    }
+    
+    calendarPane.classList.toggle('collapsed');
+    const isCollapsed = calendarPane.classList.contains('collapsed');
+    
+    if (toggleCalendarBtn) {
+        toggleCalendarBtn.textContent = isCollapsed ? '+' : '−';
+    }
+    
+    console.log('Calendar pane toggled:', isCollapsed ? 'collapsed' : 'expanded');
+}
+
+// Navigate calendar months
+function navigateMonth(direction) {
+    calendarDate.setMonth(calendarDate.getMonth() + direction);
+    updateCalendar();
+}
+
+// Generate and display calendar
+function updateCalendar() {
+    if (!calendarGrid || !calendarMonthYear) {
+        console.error('Calendar elements not found!');
+        return;
+    }
+    
+    // Update month/year display
+    const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const monthName = monthNames[calendarDate.getMonth()];
+    const year = calendarDate.getFullYear();
+    calendarMonthYear.textContent = `${monthName} ${year}`;
+    
+    // Clear existing calendar
+    calendarGrid.innerHTML = '';
+    
+    // Add day headers
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+        const headerEl = document.createElement('div');
+        headerEl.className = 'calendar-day-header';
+        headerEl.textContent = day;
+        calendarGrid.appendChild(headerEl);
+    });
+    
+    // Calculate first day of month and number of days
+    const firstDay = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1);
+    const lastDay = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(firstDay.getDate() - firstDay.getDay()); // Start from Sunday
+    
+    const today = new Date();
+    const todayStr = formatDate(today);
+    const currentDateStr = formatDate(currentDate);
+    
+    // Generate calendar days (6 weeks = 42 days)
+    for (let i = 0; i < 42; i++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + i);
+        
+        const dayEl = createCalendarDay(date, today, todayStr, currentDateStr);
+        calendarGrid.appendChild(dayEl);
+    }
+}
+
+// Create a calendar day element
+function createCalendarDay(date, today, todayStr, currentDateStr) {
+    const dayEl = document.createElement('div');
+    dayEl.className = 'calendar-day';
+    
+    const dateStr = formatDate(date);
+    const dayNumber = date.getDate();
+    const isCurrentMonth = date.getMonth() === calendarDate.getMonth();
+    const isToday = dateStr === todayStr;
+    const isSelected = dateStr === currentDateStr;
+    
+    // Add appropriate classes
+    if (!isCurrentMonth) {
+        dayEl.classList.add('other-month');
+    }
+    if (isToday) {
+        dayEl.classList.add('today');
+    }
+    if (isSelected) {
+        dayEl.classList.add('selected');
+    }
+    
+    // Day number
+    const dayNumberEl = document.createElement('div');
+    dayNumberEl.className = 'calendar-day-number';
+    dayNumberEl.textContent = dayNumber;
+    dayEl.appendChild(dayNumberEl);
+    
+    // Event input
+    const eventInput = document.createElement('input');
+    eventInput.type = 'text';
+    eventInput.className = 'calendar-event-input';
+    eventInput.placeholder = 'Add event...';
+    eventInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && eventInput.value.trim()) {
+            addCalendarEvent(date, eventInput.value.trim());
+            eventInput.value = '';
+        }
+    });
+    dayEl.appendChild(eventInput);
+    
+    // Events container
+    const eventsContainer = document.createElement('div');
+    eventsContainer.className = 'calendar-events';
+    dayEl.appendChild(eventsContainer);
+    
+    // Load existing events for this day
+    loadCalendarEvents(dateStr, eventsContainer);
+    
+    // Click handler to navigate to this day
+    dayEl.addEventListener('click', (e) => {
+        if (e.target !== eventInput) {
+            navigateToDate(date);
+        }
+    });
+    
+    return dayEl;
+}
+
+// Add an event to a calendar day
+async function addCalendarEvent(date, eventText) {
+    try {
+        const dateStr = formatDate(date);
+        
+        // Store event in calendar events
+        if (!calendarEvents[dateStr]) {
+            calendarEvents[dateStr] = [];
+        }
+        calendarEvents[dateStr].push(eventText);
+        
+        // Create a corresponding todo item
+        await createTodoFromEvent(date, eventText);
+        
+        // Update calendar display
+        updateCalendar();
+        
+        console.log(`Added event "${eventText}" on ${dateStr}`);
+    } catch (error) {
+        console.error('Failed to add calendar event:', error);
+        showCustomAlert('Error', 'Failed to add calendar event: ' + error.message);
+    }
+}
+
+// Create a todo item from a calendar event
+async function createTodoFromEvent(date, eventText) {
+    try {
+        // Load the day data for the event date
+        const dateStr = formatDate(date);
+        const dayData = await window.invoke('load_day_data', { 
+            date: dateStr, 
+            dataDir: dataDir 
+        });
+        
+        // Add the event as a todo item
+        const newTodo = {
+            id: 'todo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            text: `📅 ${eventText}`,
+            completed: false,
+            symbol: '•',
+            createdAt: new Date().toISOString()
+        };
+        
+        dayData.todos.push(newTodo);
+        
+        // Save the updated day data
+        await window.invoke('save_day_data', {
+            date: dateStr,
+            data: dayData,
+            dataDir: dataDir
+        });
+        
+        // If this is the current day, update the UI
+        if (dateStr === formatDate(currentDate)) {
+            currentDayData = dayData;
+            updateUI();
+        }
+        
+        console.log(`Created todo item for event on ${dateStr}`);
+    } catch (error) {
+        console.error('Failed to create todo from event:', error);
+        throw error;
+    }
+}
+
+// Load events for a specific day
+function loadCalendarEvents(dateStr, container) {
+    if (calendarEvents[dateStr]) {
+        calendarEvents[dateStr].forEach(event => {
+            const eventEl = document.createElement('div');
+            eventEl.className = 'calendar-event';
+            eventEl.textContent = event;
+            eventEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // TODO: Add event editing/deletion functionality
+            });
+            container.appendChild(eventEl);
+        });
+    }
+}
+
+// Navigate to a specific date
+async function navigateToDate(date) {
+    currentDate = new Date(date);
+    calendarDate = new Date(date); // Update calendar view to show the selected month
+    await loadDayData(currentDate);
+    updateCalendar(); // Refresh calendar to show new selection
 }
 
 // Utility functions
