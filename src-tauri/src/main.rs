@@ -189,7 +189,7 @@ fn save_dark_mode_preference(dark_mode: bool, app: tauri::AppHandle) -> Result<(
         .path()
         .app_data_dir()
         .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-    
+
     let file_path = data_dir.join("dark_mode.json");
 
     let json_content = serde_json::json!({ "dark_mode": dark_mode });
@@ -209,7 +209,7 @@ fn load_dark_mode_preference(app: tauri::AppHandle) -> Result<bool, String> {
         .path()
         .app_data_dir()
         .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-    
+
     let file_path = data_dir.join("dark_mode.json");
 
     if file_path.exists() {
