@@ -47,7 +47,11 @@ jobs:
 
     - name: Run Rust tests
       working-directory: src-tauri
-      run: cargo test --verbose
+      run: |
+        export DISPLAY=:99
+        Xvfb :99 -screen 0 1024x768x24 &
+        sleep 3
+        cargo test --verbose
       
     - name: Check Rust formatting
       working-directory: src-tauri
@@ -101,7 +105,7 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+        sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb
         
     - name: Cache cargo
       uses: actions/cache@v3

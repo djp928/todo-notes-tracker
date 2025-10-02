@@ -135,18 +135,22 @@ async fn stop_pomodoro_timer() -> Result<(), String> {
 }
 
 fn main() {
-    tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![
-            get_app_data_dir,
-            load_day_data,
-            save_day_data,
-            create_todo_item,
-            start_pomodoro_timer,
-            stop_pomodoro_timer,
-            send_notification
-        ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    // Only run the Tauri app if we're not in test mode
+    #[cfg(not(test))]
+    {
+        tauri::Builder::default()
+            .invoke_handler(tauri::generate_handler![
+                get_app_data_dir,
+                load_day_data,
+                save_day_data,
+                create_todo_item,
+                start_pomodoro_timer,
+                stop_pomodoro_timer,
+                send_notification
+            ])
+            .run(tauri::generate_context!())
+            .expect("error while running tauri application");
+    }
 }
 
 #[cfg(test)]
