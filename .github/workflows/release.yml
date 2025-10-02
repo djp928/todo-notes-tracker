@@ -162,27 +162,27 @@ jobs:
         if: matrix.platform == 'macos-latest'
         run: |
           mkdir -p artifacts
-          # Copy .app bundle
-          cp -r "src-tauri/target/${{ matrix.rust-target }}/release/bundle/macos/Todo Notes Tracker.app" artifacts/
-          # Create DMG if it exists
-          if [ -f "src-tauri/target/${{ matrix.rust-target }}/release/bundle/dmg/Todo Notes Tracker_${{ needs.version.outputs.new-version }}_${{ matrix.arch }}.dmg" ]; then
-            cp "src-tauri/target/${{ matrix.rust-target }}/release/bundle/dmg/"*.dmg artifacts/
-          fi
+          # Find and copy .app bundle (handles naming variations)
+          find "src-tauri/target/${{ matrix.rust-target }}/release/bundle/macos" -name "*.app" -exec cp -r {} artifacts/ \;
+          # Copy DMG files if they exist
+          find "src-tauri/target/${{ matrix.rust-target }}/release/bundle/dmg" -name "*.dmg" -exec cp {} artifacts/ \; 2>/dev/null || true
+          # List what we found for debugging
+          echo "Generated artifacts:"
+          ls -la artifacts/
 
       - name: Prepare artifacts (Linux)
         if: matrix.platform == 'ubuntu-latest'
         run: |
           mkdir -p artifacts
           # Copy AppImage if it exists
-          if ls src-tauri/target/${{ matrix.rust-target }}/release/bundle/appimage/*.AppImage 1> /dev/null 2>&1; then
-            cp src-tauri/target/${{ matrix.rust-target }}/release/bundle/appimage/*.AppImage artifacts/
-          fi
+          find "src-tauri/target/${{ matrix.rust-target }}/release/bundle/appimage" -name "*.AppImage" -exec cp {} artifacts/ \; 2>/dev/null || true
           # Copy deb package if it exists
-          if ls src-tauri/target/${{ matrix.rust-target }}/release/bundle/deb/*.deb 1> /dev/null 2>&1; then
-            cp src-tauri/target/${{ matrix.rust-target }}/release/bundle/deb/*.deb artifacts/
-          fi
+          find "src-tauri/target/${{ matrix.rust-target }}/release/bundle/deb" -name "*.deb" -exec cp {} artifacts/ \; 2>/dev/null || true
           # Copy the binary
-          cp "src-tauri/target/${{ matrix.rust-target }}/release/todo-notes-tracker" artifacts/
+          cp "src-tauri/target/${{ matrix.rust-target }}/release/todo-notes-tracker" artifacts/ 2>/dev/null || true
+          # List what we found for debugging
+          echo "Generated artifacts:"
+          ls -la artifacts/
 
       - name: Prepare artifacts (Windows)
         if: matrix.platform == 'windows-latest'
@@ -194,6 +194,9 @@ jobs:
           }
           # Copy executable
           Copy-Item "src-tauri/target/${{ matrix.rust-target }}/release/todo-notes-tracker.exe" artifacts/
+          # List what we found for debugging
+          Write-Output "Generated artifacts:"
+          Get-ChildItem artifacts/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
