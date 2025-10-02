@@ -1,6 +1,8 @@
 /* CSS Custom Properties for Zoom and Theme */
 :root {
     --zoom-scale: 1.0;
+    /* Theme transition */
+    --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
     /* Light mode colors */
     --bg-primary: #f8f9fa;
     --bg-secondary: #ffffff;
@@ -76,7 +78,7 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     font-size: 0.875rem; /* 14px at base scale */
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: var(--theme-transition);
 }
 
 /* App container */
@@ -95,7 +97,7 @@ body {
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 1px 3px var(--shadow);
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    transition: var(--theme-transition);
 }
 
 .app-header h1 {
@@ -244,7 +246,7 @@ body.dark-mode #zoom-level {
     display: flex;
     flex-direction: column;
     position: relative;
-    transition: background-color 0.3s ease;
+    transition: var(--theme-transition);
 }
 
 .calendar-pane {
@@ -418,7 +420,7 @@ body.dark-mode #zoom-level {
     align-items: center;
     background: var(--bg-tertiary);
     border-radius: 8px 8px 0 0;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    transition: var(--theme-transition);
 }
 
 .pane-header h2 {
@@ -617,7 +619,7 @@ body.dark-mode #zoom-level {
     line-height: 1.6;
     background: var(--input-bg);
     color: var(--text-primary);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: var(--theme-transition);
 }
 
 /* Toggle button */

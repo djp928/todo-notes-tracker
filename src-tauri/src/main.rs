@@ -184,8 +184,13 @@ async fn load_calendar_events(data_dir: String) -> Result<HashMap<String, Vec<St
 
 // Save dark mode preference
 #[tauri::command]
-fn save_dark_mode_preference(dark_mode: bool, data_dir: String) -> Result<(), String> {
-    let file_path = PathBuf::from(data_dir).join("dark_mode.json");
+fn save_dark_mode_preference(dark_mode: bool, app: tauri::AppHandle) -> Result<(), String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+    
+    let file_path = data_dir.join("dark_mode.json");
 
     let json_content = serde_json::json!({ "dark_mode": dark_mode });
     let json_str = serde_json::to_string_pretty(&json_content)
@@ -199,8 +204,13 @@ fn save_dark_mode_preference(dark_mode: bool, data_dir: String) -> Result<(), St
 
 // Load dark mode preference
 #[tauri::command]
-fn load_dark_mode_preference(data_dir: String) -> Result<bool, String> {
-    let file_path = PathBuf::from(data_dir).join("dark_mode.json");
+fn load_dark_mode_preference(app: tauri::AppHandle) -> Result<bool, String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+    
+    let file_path = data_dir.join("dark_mode.json");
 
     if file_path.exists() {
         let file_content = fs::read_to_string(&file_path)
