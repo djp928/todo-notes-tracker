@@ -129,13 +129,16 @@ async function initApp() {
         dataDir = await window.invoke('get_app_data_dir');
         console.log('App data directory:', dataDir);
         
+        // Load dark mode preference BEFORE setting up event listeners to avoid race condition
+        await loadDarkModePreference();
+        
         // Load today's data
         await loadDayData(currentDate);
         
         // Load calendar events
         await loadCalendarEventsFromStorage();
         
-        // Set up event listeners
+        // Set up event listeners (after preference is loaded)
         setupEventListeners();
         
         // Initialize calendar
@@ -147,9 +150,6 @@ async function initApp() {
         
         // Initialize zoom level
         applyZoom();
-        
-        // Initialize dark mode
-        await loadDarkModePreference();
         
         console.log('App initialized successfully');
         

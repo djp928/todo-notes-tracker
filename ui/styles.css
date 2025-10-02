@@ -29,6 +29,7 @@
     --todo-selected-border: #2196f3;
     --todo-hover-bg: #f8f9fa;
     --modal-overlay: rgba(0, 0, 0, 0.5);
+    --zoom-level-bg: rgba(255, 255, 255, 0.8);
 }
 
 /* Dark mode colors */
@@ -58,6 +59,7 @@ body.dark-mode {
     --todo-selected-border: #4a90e2;
     --todo-hover-bg: #353535;
     --modal-overlay: rgba(0, 0, 0, 0.75);
+    --zoom-level-bg: rgba(0, 0, 0, 0.3);
 }
 
 html {
@@ -153,6 +155,11 @@ body {
     transform: scale(0.95);
 }
 
+.theme-toggle-button:focus-visible {
+    outline: 2px solid var(--button-primary-hover);
+    outline-offset: 2px;
+}
+
 .layout-controls {
     display: flex;
     align-items: center;
@@ -206,13 +213,9 @@ body {
     color: var(--text-primary);
     min-width: 35px;
     text-align: center;
-    background: rgba(255, 255, 255, 0.8);
+    background: var(--zoom-level-bg);
     padding: 2px 4px;
     border-radius: 3px;
-}
-
-body.dark-mode #zoom-level {
-    background: rgba(0, 0, 0, 0.3);
 }
 
 .nav-button {
