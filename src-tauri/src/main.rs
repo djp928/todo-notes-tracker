@@ -1,5 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Clippy: Tauri command functions appear unused but are called by the frontend
+#![allow(dead_code)]
 
 use chrono::{DateTime, Local, NaiveDate};
 use serde::{Deserialize, Serialize};
@@ -9,6 +11,7 @@ use std::path::PathBuf;
 use tauri::{Emitter, Manager, Window};
 use uuid::Uuid;
 
+/// Represents a single todo item with bullet journal semantics
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct TodoItem {
     id: String,
@@ -18,6 +21,7 @@ struct TodoItem {
     move_to_next_day: bool,
 }
 
+/// Represents all data for a single day
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct DayData {
     date: NaiveDate,
@@ -25,7 +29,13 @@ struct DayData {
     notes: String,
 }
 
-// Get the app data directory
+/// Get the application data directory, creating it if necessary.
+///
+/// # Returns
+/// The absolute path to the app data directory as a String.
+///
+/// # Errors
+/// Returns an error if the directory cannot be accessed or created.
 #[tauri::command]
 async fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
     let data_dir = app
@@ -39,7 +49,17 @@ async fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
     Ok(data_dir.to_string_lossy().to_string())
 }
 
-// Load data for a specific date
+/// Load data for a specific date from persistent storage.
+///
+/// # Arguments
+/// * `date` - Date string in YYYY-MM-DD format
+/// * `data_dir` - Path to the app data directory
+///
+/// # Returns
+/// DayData for the requested date, or empty data if file doesn't exist.
+///
+/// # Errors
+/// Returns an error if date format is invalid or file cannot be read.
 #[tauri::command]
 async fn load_day_data(date: String, data_dir: String) -> Result<DayData, String> {
     let date = NaiveDate::parse_from_str(&date, "%Y-%m-%d")
@@ -65,7 +85,14 @@ async fn load_day_data(date: String, data_dir: String) -> Result<DayData, String
     }
 }
 
-// Save data for the current day
+/// Save data for a specific day to persistent storage.
+///
+/// # Arguments
+/// * `day_data` - The complete data for the day to save
+/// * `data_dir` - Path to the app data directory
+///
+/// # Errors
+/// Returns an error if serialization fails or file cannot be written.
 #[tauri::command]
 async fn save_day_data(day_data: DayData, data_dir: String) -> Result<(), String> {
     let file_path =
@@ -79,7 +106,13 @@ async fn save_day_data(day_data: DayData, data_dir: String) -> Result<(), String
     Ok(())
 }
 
-// Create a new todo item
+/// Create a new todo item with a unique ID and timestamp.
+///
+/// # Arguments
+/// * `text` - The todo item text/description
+///
+/// # Returns
+/// A new TodoItem with generated ID and current timestamp.
 #[tauri::command]
 async fn create_todo_item(text: String) -> Result<TodoItem, String> {
     let now = Local::now();
@@ -94,7 +127,17 @@ async fn create_todo_item(text: String) -> Result<TodoItem, String> {
     Ok(todo)
 }
 
-// Start pomodoro timer with notifications (no window resizing)
+/// Start a pomodoro timer for a specific duration.
+///
+/// The timer runs asynchronously and emits a "pomodoro-complete" event when finished.
+///
+/// # Arguments
+/// * `duration_minutes` - Timer duration in minutes
+/// * `task_text` - Description of the task being timed
+/// * `window` - Tauri window handle for emitting completion event
+///
+/// # Returns
+/// Ok(()) immediately after starting the timer (non-blocking).
 #[tauri::command]
 async fn start_pomodoro_timer(
     duration_minutes: u32,
@@ -111,15 +154,28 @@ async fn start_pomodoro_timer(
         tokio::time::sleep(duration).await;
 
         // Emit pomodoro complete event
+        // Note: Errors are logged but don't block the timer completion
         if let Err(e) = window.emit("pomodoro-complete", &task_text) {
+            // Log to stderr in debug mode, silent in release
+            #[cfg(debug_assertions)]
             eprintln!("Failed to emit pomodoro-complete event: {}", e);
+
+            // Suppress the error - we tried to notify but UI might have closed
+            let _ = e;
         }
     });
 
     Ok(())
 }
 
-// Send system notification
+/// Send a system notification (macOS/Windows/Linux).
+///
+/// # Arguments
+/// * `title` - Notification title
+/// * `body` - Notification body text
+///
+/// # Errors
+/// Returns an error if notification cannot be sent.
 #[tauri::command]
 async fn send_notification(
     title: String,
@@ -139,7 +195,10 @@ async fn send_notification(
     Ok(())
 }
 
-// Stop pomodoro timer
+/// Stop the currently running pomodoro timer.
+///
+/// # Errors
+/// Returns an error if stopping the timer fails.
 #[tauri::command]
 async fn stop_pomodoro_timer() -> Result<(), String> {
     // Just acknowledge the stop - no window resizing needed
@@ -182,7 +241,14 @@ async fn load_calendar_events(data_dir: String) -> Result<HashMap<String, Vec<St
     }
 }
 
-// Save dark mode preference
+/// Save user's dark mode preference.
+///
+/// # Arguments
+/// * `dark_mode` - True for dark mode, false for light mode
+/// * `app` - Tauri app handle for accessing app data directory
+///
+/// # Errors
+/// Returns an error if preference cannot be saved.
 #[tauri::command]
 fn save_dark_mode_preference(dark_mode: bool, app: tauri::AppHandle) -> Result<(), String> {
     let data_dir = app
@@ -202,7 +268,16 @@ fn save_dark_mode_preference(dark_mode: bool, app: tauri::AppHandle) -> Result<(
     Ok(())
 }
 
-// Load dark mode preference
+/// Load user's dark mode preference.
+///
+/// # Arguments
+/// * `app` - Tauri app handle for accessing app data directory
+///
+/// # Returns
+/// True if dark mode is preferred, false otherwise (defaults to light mode).
+///
+/// # Errors
+/// Returns an error if preference file cannot be read.
 #[tauri::command]
 fn load_dark_mode_preference(app: tauri::AppHandle) -> Result<bool, String> {
     let data_dir = app
