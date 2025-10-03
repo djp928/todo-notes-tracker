@@ -156,9 +156,7 @@ jobs:
         if: matrix.platform == 'macos-latest'
         run: |
           mkdir -p artifacts
-          # Find and copy .app bundle (handles naming variations)
-          find "src-tauri/target/${{ matrix.rust-target }}/release/bundle/macos" -name "*.app" -exec cp -r {} artifacts/ \;
-          # Copy DMG files if they exist
+          # Copy DMG files (these are the distributable installers)
           find "src-tauri/target/${{ matrix.rust-target }}/release/bundle/dmg" -name "*.dmg" -exec cp {} artifacts/ \; 2>/dev/null || true
           # List what we found for debugging
           echo "Generated artifacts:"
