@@ -3,12 +3,6 @@ name: 'Release'
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - 'README.md'
-      - 'docs/**'
-      - '.gitignore'
-      - '.github/**'
-      - '!.github/workflows/release.yml'
   workflow_dispatch:
     inputs:
       force_release:
@@ -19,15 +13,6 @@ on:
         options:
           - 'false'
           - 'true'
-      version_type:
-        description: 'Version bump type (if forcing)'
-        required: false
-        default: 'patch'
-        type: choice
-        options:
-          - 'patch'
-          - 'minor'
-          - 'major'
 
 permissions:
   contents: write
@@ -35,81 +20,50 @@ permissions:
   issues: write
 
 jobs:
-  # Job 1: Determine version bump and create new version
+  # Job 1: Determine if a release is needed and calculate version
   version:
     runs-on: ubuntu-latest
     outputs:
       should-release: ${{ steps.version-check.outputs.should-release }}
       new-version: ${{ steps.version-check.outputs.new-version }}
       version-type: ${{ steps.version-check.outputs.version-type }}
-      old-version: ${{ steps.version-check.outputs.old-version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Determine version bump and calculate new version
+      - name: Check if release needed
         id: version-check
         run: |
+          # Check if this is a forced release
+          if [ "${{ github.event.inputs.force_release }}" = "true" ]; then
+            echo "Force release requested"
+            CURRENT_VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
+            echo "should-release=true" >> $GITHUB_OUTPUT
+            echo "new-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "version-type=manual" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
           # Get the latest tag
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           echo "Latest tag: $LATEST_TAG"
           
           # Get current version from tauri.conf.json
           CURRENT_VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
-          echo "Current version in config: $CURRENT_VERSION"
+          echo "Current version: $CURRENT_VERSION"
           
           # Remove 'v' prefix from tag for comparison
           TAG_VERSION=${LATEST_TAG#v}
-          echo "Tag version: $TAG_VERSION"
           
-          # Check if this is a forced release
-          if [ "${{ github.event.inputs.force_release }}" = "true" ]; then
-            echo "Force release requested"
-            
-            # For forced release, use the manual version type input
-            VERSION_TYPE="${{ github.event.inputs.version_type }}"
-            
-            # Parse current version
-            IFS='.' read -ra VERSION_PARTS <<< "$TAG_VERSION"
-            MAJOR=${VERSION_PARTS[0]}
-            MINOR=${VERSION_PARTS[1]}
-            PATCH=${VERSION_PARTS[2]}
-            
-            # Bump based on type
-            case "$VERSION_TYPE" in
-              "major")
-                MAJOR=$((MAJOR + 1))
-                MINOR=0
-                PATCH=0
-                ;;
-              "minor")
-                MINOR=$((MINOR + 1))
-                PATCH=0
-                ;;
-              "patch")
-                PATCH=$((PATCH + 1))
-                ;;
-            esac
-            
-            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-            echo "Forced release - new version: $NEW_VERSION"
-            echo "should-release=true" >> $GITHUB_OUTPUT
-            echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
-            echo "version-type=$VERSION_TYPE" >> $GITHUB_OUTPUT
-            echo "old-version=$TAG_VERSION" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          # If version in config is already different from tag, use that
+          # Check if version has changed
           if [ "$CURRENT_VERSION" != "$TAG_VERSION" ]; then
-            echo "Version already bumped in config: $TAG_VERSION -> $CURRENT_VERSION"
+            echo "Version changed from $TAG_VERSION to $CURRENT_VERSION"
             echo "should-release=true" >> $GITHUB_OUTPUT
             echo "new-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-            echo "old-version=$TAG_VERSION" >> $GITHUB_OUTPUT
             
-            # Determine version type from the change
+            # Determine version type (major, minor, patch)
             IFS='.' read -ra CURRENT <<< "$CURRENT_VERSION"
             IFS='.' read -ra PREVIOUS <<< "$TAG_VERSION"
             
@@ -120,107 +74,10 @@ jobs:
             else
               echo "version-type=patch" >> $GITHUB_OUTPUT
             fi
-            exit 0
-          fi
-          
-          # Auto-detect version bump type from commit messages since last tag
-          echo "Analyzing commits since $LATEST_TAG to determine version bump..."
-          
-          # Get commits since last tag
-          if [ "$LATEST_TAG" = "v0.0.0" ]; then
-            COMMITS=$(git log --pretty=format:"%s" HEAD)
           else
-            COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"%s")
+            echo "No version change detected"
+            echo "should-release=false" >> $GITHUB_OUTPUT
           fi
-          
-          # Check for breaking changes (major version)
-          if echo "$COMMITS" | grep -qiE "^(BREAKING CHANGE|.*!:)"; then
-            VERSION_TYPE="major"
-            echo "Found breaking changes - major version bump"
-          # Check for features (minor version)
-          elif echo "$COMMITS" | grep -qiE "^(feat|feature):"; then
-            VERSION_TYPE="minor"
-            echo "Found new features - minor version bump"
-          # Default to patch for fixes and other changes
-          elif echo "$COMMITS" | grep -qiE "^(fix|bugfix|patch|chore|docs|style|refactor|perf|test):"; then
-            VERSION_TYPE="patch"
-            echo "Found fixes/changes - patch version bump"
-          else
-            echo "No conventional commits found, checking for significant changes..."
-            # Check if there are actual code changes
-            CHANGED_FILES=$(git diff --name-only ${LATEST_TAG}..HEAD | grep -v "^README\|^docs/\|^\.github/" || true)
-            if [ -z "$CHANGED_FILES" ]; then
-              echo "No significant changes detected - skipping release"
-              echo "should-release=false" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-            VERSION_TYPE="patch"
-            echo "Significant changes found - defaulting to patch version bump"
-          fi
-          
-          # Parse current version and bump it
-          IFS='.' read -ra VERSION_PARTS <<< "$TAG_VERSION"
-          MAJOR=${VERSION_PARTS[0]}
-          MINOR=${VERSION_PARTS[1]}
-          PATCH=${VERSION_PARTS[2]}
-          
-          case "$VERSION_TYPE" in
-            "major")
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-              ;;
-            "minor")
-              MINOR=$((MINOR + 1))
-              PATCH=0
-              ;;
-            "patch")
-              PATCH=$((PATCH + 1))
-              ;;
-          esac
-          
-          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-          echo "Calculated new version: $NEW_VERSION (type: $VERSION_TYPE)"
-          
-          echo "should-release=true" >> $GITHUB_OUTPUT
-          echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "version-type=$VERSION_TYPE" >> $GITHUB_OUTPUT
-          echo "old-version=$TAG_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Update version files
-        if: steps.version-check.outputs.should-release == 'true'
-        run: |
-          NEW_VERSION="${{ steps.version-check.outputs.new-version }}"
-          
-          echo "Updating version to $NEW_VERSION in configuration files..."
-          
-          # Update tauri.conf.json
-          sed -i 's/"version": "[^"]*"/"version": "'$NEW_VERSION'"/' src-tauri/tauri.conf.json
-          
-          # Update Cargo.toml
-          sed -i 's/^version = "[^"]*"/version = "'$NEW_VERSION'"/' src-tauri/Cargo.toml
-          
-          # Update Cargo.lock
-          cd src-tauri
-          cargo update -p todo-notes-tracker
-          cd ..
-          
-          echo "Version files updated successfully"
-
-      - name: Commit version bump
-        if: steps.version-check.outputs.should-release == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git add src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
-          git commit -m "🔖 chore(release): bump version to v${{ steps.version-check.outputs.new-version }}
-
-Auto-generated version bump: ${{ steps.version-check.outputs.old-version }} → ${{ steps.version-check.outputs.new-version }}
-Type: ${{ steps.version-check.outputs.version-type }}
-
-[skip ci]"
-          git push origin main
 
   # Job 2: Build and release if version changed
   release:
@@ -238,7 +95,7 @@ Type: ${{ steps.version-check.outputs.version-type }}
             target: 'aarch64-apple-darwin'
             arch: 'arm64'
             rust-target: 'aarch64-apple-darwin'
-          - platform: 'ubuntu-20.04'
+          - platform: 'ubuntu-latest'
             target: 'x86_64-unknown-linux-gnu'
             arch: 'x64'
             rust-target: 'x86_64-unknown-linux-gnu'
@@ -251,8 +108,6 @@ Type: ${{ steps.version-check.outputs.version-type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: main  # Fetch the updated version
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -268,11 +123,11 @@ Type: ${{ steps.version-check.outputs.version-type }}
           node-version: '20'
 
       - name: Install dependencies (Ubuntu)
-        if: contains(matrix.platform, 'ubuntu')
+        if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libwebkit2gtk-4.0-dev \
+            libwebkit2gtk-4.1-dev \
             libgtk-3-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
@@ -310,7 +165,7 @@ Type: ${{ steps.version-check.outputs.version-type }}
           ls -la artifacts/
 
       - name: Prepare artifacts (Linux)
-        if: contains(matrix.platform, 'ubuntu')
+        if: matrix.platform == 'ubuntu-latest'
         run: |
           mkdir -p artifacts
           # Copy AppImage if it exists
@@ -351,9 +206,6 @@ Type: ${{ steps.version-check.outputs.version-type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: main  # Fetch the updated version
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -364,8 +216,8 @@ Type: ${{ steps.version-check.outputs.version-type }}
         id: release-notes
         run: |
           # Get commits since last tag
-          LATEST_TAG="v${{ needs.version.outputs.old-version }}"
-          if [ "$LATEST_TAG" != "v" ] && git rev-parse "$LATEST_TAG" >/dev/null 2>&1; then
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LATEST_TAG" ]; then
             COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline --pretty=format:"- %s" | head -20)
           else
             COMMITS=$(git log --oneline --pretty=format:"- %s" | head -10)
