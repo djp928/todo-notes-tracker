@@ -2,9 +2,9 @@
 name = "todo-notes-tracker"
 version = "1.1.0"
 description = "A bullet journal style todo app with pomodoro timer"
-authors = ["Your Name <your.email@example.com>"]
-license = ""
-repository = ""
+authors = ["djp928"]
+license = "MIT"
+repository = "https://github.com/djp928/todo-notes-tracker"
 edition = "2021"
 
 [build-dependencies]

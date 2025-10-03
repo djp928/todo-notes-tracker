@@ -9,7 +9,6 @@ function findTauriInvoke() {
     
     for (let i = 0; i < possiblePaths.length; i++) {
         if (typeof possiblePaths[i] === 'function') {
-            console.log(`Found working invoke function at path ${i}`);
             return possiblePaths[i];
         }
     }
@@ -17,8 +16,6 @@ function findTauriInvoke() {
 }
 
 async function initTauriAPI() {
-    console.log('Initializing Tauri API...');
-    
     if (!window.__TAURI__) {
         console.error('__TAURI__ not available');
         return false;
@@ -36,7 +33,6 @@ async function initTauriAPI() {
         // Store globally for use throughout the app
         window.invoke = invokeFunc;
         
-        console.log('✓ Tauri API initialized successfully');
         return true;
     } catch (error) {
         console.error('Tauri invoke test failed:', error);
@@ -118,8 +114,6 @@ const darkModeToggleBtn = document.getElementById('dark-mode-toggle');
 // Initialize the application
 async function initApp() {
     try {
-        console.log('Initializing app...');
-        
         // Initialize Tauri API
         if (!(await initTauriAPI())) {
             throw new Error('Failed to initialize Tauri API');
@@ -127,7 +121,6 @@ async function initApp() {
         
         // Get the app data directory
         dataDir = await window.invoke('get_app_data_dir');
-        console.log('App data directory:', dataDir);
         
         // Load dark mode preference BEFORE setting up event listeners to avoid race condition
         await loadDarkModePreference();
@@ -144,14 +137,8 @@ async function initApp() {
         // Initialize calendar
         updateCalendar();
         
-        // Set up pomodoro completion handler
-        // We'll handle this with a simple timeout since listen isn't working
-        console.log('Event listeners set up for pomodoro completion');
-        
         // Initialize zoom level
         applyZoom();
-        
-        console.log('App initialized successfully');
         
     } catch (error) {
         console.error('Failed to initialize app:', error);
@@ -161,7 +148,6 @@ async function initApp() {
 
 // Set up event listeners
 function setupEventListeners() {
-    console.log('Setting up event listeners...');
     
     // Check if elements exist
     if (!newTodoInput) {
@@ -175,14 +161,12 @@ function setupEventListeners() {
     
     // Todo input
     newTodoInput.addEventListener('keypress', (e) => {
-        console.log('Key pressed:', e.key);
         if (e.key === 'Enter') {
             addTodo();
         }
     });
     
     addTodoBtn.addEventListener('click', () => {
-        console.log('Add button clicked');
         addTodo();
     });
     
@@ -228,28 +212,19 @@ function setupEventListeners() {
     document.addEventListener('mouseup', stopResize);
     
     // Zoom controls
-    console.log('Zoom buttons found:', {
-        zoomIn: zoomInBtn ? 'exists' : 'missing',
-        zoomOut: zoomOutBtn ? 'exists' : 'missing', 
-        zoomReset: zoomResetBtn ? 'exists' : 'missing',
-        zoomLevel: zoomLevelEl ? 'exists' : 'missing'
-    });
     
     if (zoomInBtn) {
         zoomInBtn.addEventListener('click', () => {
-            console.log('Zoom in button clicked');
             zoomIn();
         });
     }
     if (zoomOutBtn) {
         zoomOutBtn.addEventListener('click', () => {
-            console.log('Zoom out button clicked');
             zoomOut();
         });
     }
     if (zoomResetBtn) {
         zoomResetBtn.addEventListener('click', () => {
-            console.log('Zoom reset button clicked');
             zoomReset();
         });
     }
@@ -260,7 +235,6 @@ function setupEventListeners() {
     // Dark mode toggle
     if (darkModeToggleBtn) {
         darkModeToggleBtn.addEventListener('click', () => {
-            console.log('Dark mode toggle clicked');
             toggleDarkMode();
         });
     }
@@ -338,7 +312,6 @@ function createTodoElement(todo, index) {
     const checkbox = document.createElement('div');
     checkbox.className = `todo-checkbox ${todo.completed ? 'completed' : ''}`;
     checkbox.addEventListener('click', () => {
-        console.log('Checkbox clicked for index:', index);
         toggleTodo(index);
     });
     
@@ -346,7 +319,6 @@ function createTodoElement(todo, index) {
     todoText.className = `todo-text ${todo.completed ? 'completed' : ''}`;
     todoText.textContent = todo.text;
     todoText.addEventListener('click', () => {
-        console.log('Todo text clicked for index:', index);
         selectTodo(index);
     });
     
@@ -358,7 +330,6 @@ function createTodoElement(todo, index) {
     moveBtn.textContent = '→';
     moveBtn.title = 'Move to next day';
     moveBtn.addEventListener('click', (e) => {
-        console.log('Move button clicked for index:', index);
         e.stopPropagation();
         moveTodoToNextDay(index);
     });
@@ -368,23 +339,17 @@ function createTodoElement(todo, index) {
         deleteBtn.textContent = '×';
         deleteBtn.title = 'Delete';
         deleteBtn.addEventListener('click', (e) => {
-            console.log('Delete button clicked for index:', index);
             e.stopPropagation();
             e.preventDefault();
             
-            console.log('Current todos before delete:', currentDayData.todos.length);
-            console.log('Todo to delete:', currentDayData.todos[index]);
             
             // Use custom confirm dialog
-            console.log('Showing custom confirmation dialog...');
             customConfirm(
                 `Delete this todo?\n\n"${currentDayData.todos[index].text}"\n\nThis cannot be undone.`,
                 '🗑️ Delete Todo'
             ).then(userConfirmed => {
-                console.log('Confirmation result:', userConfirmed);
                 
                 if (userConfirmed) {
-                    console.log('User confirmed deletion - proceeding...');
                     
                     // Update selected todo index if needed
                     if (selectedTodo === index) {
@@ -395,7 +360,6 @@ function createTodoElement(todo, index) {
                     
                     // Remove the todo
                     currentDayData.todos.splice(index, 1);
-                    console.log('Todos after delete:', currentDayData.todos.length);
                     
                     // Update UI
                     renderTodoList();
@@ -404,7 +368,6 @@ function createTodoElement(todo, index) {
                     
                     customAlert('Todo deleted successfully!', '✅ Success');
                 } else {
-                    console.log('User cancelled deletion');
                 }
             });
         });    actionsDiv.appendChild(moveBtn);
@@ -419,21 +382,16 @@ function createTodoElement(todo, index) {
 
 // Add a new todo
 async function addTodo() {
-    console.log('addTodo called');
     const text = newTodoInput.value.trim();
-    console.log('Todo text:', text);
     
     if (!text) {
-        console.log('Empty text, returning');
         return;
     }
     
     try {
-        console.log('Calling create_todo_item...');
         const todo = await window.invoke('create_todo_item', {
             text: text
         });
-        console.log('Todo created:', todo);
         
         currentDayData.todos.push(todo);
         newTodoInput.value = '';
@@ -496,7 +454,6 @@ async function moveTodoToNextDay(index) {
         renderTodoList();
         await saveDayData();
         
-        console.log(`Moved todo "${todo.text}" to ${nextDateString}`);
         
     } catch (error) {
         console.error('Failed to move todo to next day:', error);
@@ -507,11 +464,8 @@ async function moveTodoToNextDay(index) {
 // Delete a todo
 // Make sure this function is available globally
 window.deleteTodo = function(index) {
-    console.log('deleteTodo called with index:', index);
-    console.log('Current todos:', currentDayData.todos);
     
     if (confirm('Are you sure you want to delete this todo?')) {
-        console.log('User confirmed deletion');
         currentDayData.todos.splice(index, 1);
         
         if (selectedTodo === index) {
@@ -520,12 +474,10 @@ window.deleteTodo = function(index) {
             selectedTodo--;
         }
         
-        console.log('Todos after deletion:', currentDayData.todos);
         renderTodoList();
         updatePomodoroButton();
         saveDayData();
     } else {
-        console.log('User cancelled deletion');
     }
 };
 
@@ -575,7 +527,6 @@ function updatePomodoroButton() {
 
 // Start pomodoro timer
 async function startPomodoro() {
-    console.log('Starting pomodoro...', { selectedTodo, currentDayData });
     
     if (selectedTodo === null || !currentDayData.todos[selectedTodo]) {
         console.error('No todo selected for pomodoro');
@@ -596,7 +547,6 @@ async function startPomodoro() {
     
     const todoText = currentDayData.todos[selectedTodo].text;
     
-    console.log(`Starting pomodoro for ${durationInSeconds} seconds for: ${todoText}`);
     
     try {
         // Show timer overlay
@@ -614,7 +564,6 @@ async function startPomodoro() {
             });
         }
         
-        console.log('Pomodoro started successfully');
         
     } catch (error) {
         console.error('Failed to start pomodoro:', error);
@@ -634,15 +583,12 @@ function startCountdown(totalSeconds) {
     };
     
     updateDisplay();
-    console.log('Starting countdown for', totalSeconds, 'seconds');
     
     pomodoroInterval = setInterval(() => {
         remaining--;
         updateDisplay();
-        console.log('Countdown:', remaining);
         
         if (remaining <= 0) {
-            console.log('Timer finished! Calling completion handler...');
             clearInterval(pomodoroInterval);
             pomodoroInterval = null;
             
@@ -667,7 +613,6 @@ function startCountdown(totalSeconds) {
             
             // Show custom completion dialog
             setTimeout(() => {
-                console.log('Showing completion dialog...');
                 customAlert(
                     'Pomodoro session complete!\n\nGreat job! Time for a well-deserved break! 🎉',
                     '🍅 Pomodoro Complete!'
@@ -751,7 +696,6 @@ function showNotification(title, body) {
 
 // Toggle notes pane
 function toggleNotesPane() {
-    console.log('Toggling notes pane...', { notesPane, toggleNotesBtn });
     
     if (!notesPane) {
         console.error('Notes pane element not found!');
@@ -776,12 +720,10 @@ function toggleNotesPane() {
         toggleNotesBtn.textContent = isCollapsed ? '+' : '−';
     }
     
-    console.log('Notes pane toggled:', isCollapsed ? 'collapsed' : 'expanded');
 }
 
 // Toggle calendar pane
 function toggleCalendarPane() {
-    console.log('Toggling calendar pane...', { calendarPane, toggleCalendarBtn });
     
     if (!calendarPane) {
         console.error('Calendar pane element not found!');
@@ -806,7 +748,6 @@ function toggleCalendarPane() {
         toggleCalendarBtn.textContent = isCollapsed ? '+' : '−';
     }
     
-    console.log('Calendar pane toggled:', isCollapsed ? 'collapsed' : 'expanded');
 }
 
 // Navigate calendar months
@@ -926,7 +867,6 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
 async function addCalendarEvent(date, eventText) {
     try {
         const dateStr = formatDate(date);
-        console.log(`Adding calendar event: "${eventText}" on ${dateStr}`);
         
         // Store event in calendar events
         if (!calendarEvents[dateStr]) {
@@ -943,7 +883,6 @@ async function addCalendarEvent(date, eventText) {
         // Update calendar display
         updateCalendar();
         
-        console.log(`Successfully added event "${eventText}" on ${dateStr}`);
     } catch (error) {
         console.error('Failed to add calendar event:', error);
         showCustomAlert('Error', 'Failed to add calendar event: ' + error.message);
@@ -955,15 +894,12 @@ async function createTodoFromEvent(date, eventText) {
     try {
         // Load the day data for the event date
         const dateStr = formatDate(date);
-        console.log(`Creating todo from event: "${eventText}" for date ${dateStr}`);
-        console.log(`Current dataDir: ${dataDir}`);
         
         const dayData = await window.invoke('load_day_data', { 
             date: dateStr, 
             dataDir: dataDir 
         });
         
-        console.log(`Loaded day data for ${dateStr}:`, dayData);
         
         // Ensure the dayData has the correct date field (the backend expects a date field)
         if (!dayData.date) {
@@ -975,9 +911,7 @@ async function createTodoFromEvent(date, eventText) {
             text: `📅 ${eventText}`
         });
         
-        console.log(`Created new todo via backend:`, newTodo);
         dayData.todos.push(newTodo);
-        console.log(`Day data after adding todo:`, dayData);
         
         // Save the updated day data
         await window.invoke('save_day_data', {
@@ -985,18 +919,14 @@ async function createTodoFromEvent(date, eventText) {
             dataDir: dataDir
         });
         
-        console.log(`Saved day data for ${dateStr}`);
         
         // If this is the current day, update the UI
         if (dateStr === formatDate(currentDate)) {
-            console.log(`This is the current day (${formatDate(currentDate)}), updating UI`);
             currentDayData = dayData;
             updateUI();
         } else {
-            console.log(`This is not the current day (current: ${formatDate(currentDate)}, event: ${dateStr})`);
         }
         
-        console.log(`Successfully created todo item for event on ${dateStr}`);
     } catch (error) {
         console.error('Failed to create todo from event:', error);
         throw error;
@@ -1034,7 +964,6 @@ async function saveCalendarEvents() {
             events: calendarEvents,
             dataDir: dataDir
         });
-        console.log('Calendar events saved successfully');
     } catch (error) {
         console.error('Failed to save calendar events:', error);
     }
@@ -1047,7 +976,6 @@ async function loadCalendarEventsFromStorage() {
             dataDir: dataDir
         });
         calendarEvents = events || {};
-        console.log('Calendar events loaded from storage:', calendarEvents);
     } catch (error) {
         console.error('Failed to load calendar events:', error);
         // Initialize with empty object if loading fails
@@ -1071,7 +999,6 @@ function startResize(e, panelType) {
     mainContent.classList.add('resizing');
     document.body.style.cursor = 'col-resize';
     
-    console.log(`Started resizing ${panelType} panel`);
 }
 
 function handleResize(e) {
@@ -1101,11 +1028,9 @@ function stopResize() {
     mainContent.classList.remove('resizing');
     document.body.style.cursor = '';
     
-    console.log('Stopped resizing');
 }
 
 function resetPanelSizes() {
-    console.log('Resetting panel sizes to defaults');
     
     if (!calendarPane.classList.contains('collapsed')) {
         calendarPane.style.width = defaultCalendarWidth + 'px';
@@ -1241,27 +1166,22 @@ function customConfirm(message, title = '🤔 Confirm') {
 
 // Zoom functions
 function zoomIn() {
-    console.log('Zoom In clicked, current level:', zoomLevel);
     if (zoomLevel < maxZoom) {
         zoomLevel = Math.min(maxZoom, zoomLevel + zoomStep);
         applyZoom();
     } else {
-        console.log('Already at maximum zoom:', maxZoom);
     }
 }
 
 function zoomOut() {
-    console.log('Zoom Out clicked, current level:', zoomLevel);
     if (zoomLevel > minZoom) {
         zoomLevel = Math.max(minZoom, zoomLevel - zoomStep);
         applyZoom();
     } else {
-        console.log('Already at minimum zoom:', minZoom);
     }
 }
 
 function zoomReset() {
-    console.log('Zoom Reset clicked');
     zoomLevel = 1.0;
     applyZoom();
 }
@@ -1270,31 +1190,25 @@ function applyZoom() {
     document.documentElement.style.setProperty('--zoom-scale', zoomLevel);
     document.getElementById('zoom-level').textContent = Math.round(zoomLevel * 100) + '%';
     
-    console.log('Zoom level set to:', Math.round(zoomLevel * 100) + '%');
 }
 
 function handleZoomKeyboard(e) {
     // Check for Cmd (Mac) or Ctrl (Windows/Linux)
-    console.log('Key event:', e.key, 'Meta:', e.metaKey, 'Ctrl:', e.ctrlKey);
     
     const isModifierPressed = e.metaKey || e.ctrlKey;
     
     if (isModifierPressed) {
-        console.log('Modifier key pressed with:', e.key);
         switch(e.key) {
             case '=':
             case '+':
-                console.log('Zoom in keyboard shortcut triggered');
                 e.preventDefault();
                 zoomIn();
                 break;
             case '-':
-                console.log('Zoom out keyboard shortcut triggered');
                 e.preventDefault();
                 zoomOut();
                 break;
             case '0':
-                console.log('Zoom reset keyboard shortcut triggered');
                 e.preventDefault();
                 zoomReset();
                 break;
@@ -1333,7 +1247,6 @@ async function saveDarkModePreference() {
         await window.invoke('save_dark_mode_preference', {
             dark_mode: darkMode
         });
-        console.log('Dark mode preference saved:', darkMode);
     } catch (error) {
         console.error('Failed to save dark mode preference:', error);
     }
@@ -1343,7 +1256,6 @@ async function loadDarkModePreference() {
     try {
         darkMode = await window.invoke('load_dark_mode_preference');
         applyDarkMode();
-        console.log('Dark mode preference loaded:', darkMode);
     } catch (error) {
         console.error('Failed to load dark mode preference:', error);
         // Default to light mode if loading fails
@@ -1354,7 +1266,6 @@ async function loadDarkModePreference() {
 
 // Initialize when DOM is ready
 function initWhenReady() {
-    console.log('DOM ready, initializing todo app...');
     initApp();
 }
 

@@ -124,14 +124,99 @@ if (!element) {
 - Group related styles together
 - Use transitions for smooth user experience
 
-## Debugging Tips
+## Code Quality Standards
 
-### Console Logging
-Add comprehensive logging for:
-- Element existence checks
-- API call results
-- Event handler execution
-- State changes
+### Logging Best Practices
+
+**Production Code**:
+- ❌ Avoid excessive `console.log` for debugging
+- ✅ Use `console.error` for errors only
+- ✅ Keep essential state logging minimal
+- ✅ In Rust, use `#[cfg(debug_assertions)]` for debug-only prints
+
+**Example**:
+```javascript
+// ❌ Bad - excessive debug logging
+console.log('Function called');
+console.log('Parameter:', param);
+console.log('Processing...');
+console.log('Result:', result);
+
+// ✅ Good - minimal, meaningful logging
+console.error('Failed to process data:', error);
+console.log('Dark mode:', darkMode ? 'enabled' : 'disabled'); // State indicator
+```
+
+```rust
+// ✅ Debug-only logging in Rust
+#[cfg(debug_assertions)]
+eprintln!("Debug info: {}", data);
+
+// ❌ Avoid in production - prints always
+eprintln!("This always prints!");
+```
+
+### Documentation Standards
+
+**Rust Code**:
+- ✅ Add doc comments (`///`) to all public structs and functions
+- ✅ Document parameters, return values, and error conditions
+- ✅ Use `#[tauri::command]` functions appear unused to Clippy - add `#[allow(dead_code)]` at module level
+
+**Example**:
+```rust
+/// Creates a new todo item with a unique ID and timestamp.
+///
+/// # Arguments
+/// * `text` - The todo item text/description
+///
+/// # Returns
+/// A new TodoItem with generated ID and current timestamp.
+///
+/// # Errors
+/// Returns an error if the operation fails.
+#[tauri::command]
+async fn create_todo_item(text: String) -> Result<TodoItem, String> {
+    // Implementation
+}
+```
+
+**JavaScript Code**:
+- ✅ Add JSDoc comments for complex functions
+- ✅ Declare DOM elements at top of file
+- ✅ Check element existence before use
+
+### Metadata Quality
+
+**Cargo.toml**:
+- ✅ Use real author information
+- ✅ Specify license (e.g., "MIT")
+- ✅ Include repository URL
+- ❌ Avoid placeholder values like "Your Name <your.email@example.com>"
+
+**Example**:
+```toml
+[package]
+name = "todo-notes-tracker"
+version = "1.1.0"
+authors = ["djp928"]
+license = "MIT"
+repository = "https://github.com/djp928/todo-notes-tracker"
+```
+
+### Debugging Tips
+
+### Console Logging Best Practices
+
+**During Development**:
+- Use debug logging to understand flow
+- Mark temporary logs clearly with comments
+- Remove before committing to main
+
+**In Production**:
+- Keep only `console.error` for errors
+- Minimal `console.log` for critical state (e.g., "Dark mode enabled")
+- No verbose operation logging
 
 ### Common Debug Points
 1. Check if Tauri API is available: `window.__TAURI__`
@@ -292,7 +377,7 @@ Our release workflow automatically:
 Following conventional commits ensures this automation works correctly!
 
 ### Release Process (Automated)
-### Release Process (Automated)
+
 1. Merge PR to main with conventional commit messages
 2. Workflow automatically analyzes commits since last tag
 3. Version is bumped based on commit types
@@ -308,16 +393,34 @@ Following conventional commits ensures this automation works correctly!
 
 ## Key Learnings Summary
 
-1. **Tauri API Access**: Requires `withGlobalTauri: true` configuration
-2. **Native Dialogs**: Don't work - use custom HTML modals instead
-3. **Font Scaling**: Must use root-level CSS scaling with rem units
-4. **Event Listeners**: Declare DOM elements at top, set up after DOM ready
-5. **File Storage**: Use app data directory with proper async handling
-6. **Development**: Use `cargo tauri dev` from src-tauri directory
-7. **Debugging**: DevTools + comprehensive console logging essential
-8. **Error Handling**: Always use Result<T, String> in Rust commands
-9. **Versioning**: Keep version sync across Cargo.toml, tauri.conf.json, and UI
-10. **Testing**: Comprehensive unit tests are mandatory for all code changes
+### Code Quality
+1. **Logging**: Keep production logs minimal - only errors and critical state
+2. **Documentation**: All Rust functions need doc comments with examples
+3. **Metadata**: Use real author/license info, not placeholders
+4. **Clippy**: Tauri commands need `#[allow(dead_code)]` - they're called by frontend
+
+### Tauri Specifics
+5. **API Access**: Requires `withGlobalTauri: true` configuration
+6. **Native Dialogs**: Don't work - use custom HTML modals instead
+7. **Development**: Use `cargo tauri dev` from src-tauri directory
+
+### Frontend Best Practices
+8. **Font Scaling**: Must use root-level CSS scaling with rem units
+9. **Event Listeners**: Declare DOM elements at top, set up after DOM ready
+10. **Dark Mode**: Load preferences BEFORE setting up event listeners (avoid race conditions)
+
+### Backend Best Practices
+11. **Error Handling**: Always use `Result<T, String>` in Rust commands
+12. **File Storage**: Use app data directory with proper async handling
+13. **Debug Prints**: Wrap in `#[cfg(debug_assertions)]` for debug-only output
+
+### Testing
+14. **Comprehensive**: Unit tests are mandatory for all code changes
+15. **Run Before Commit**: Always run `./run-tests.sh` before committing
+
+### Release Process
+16. **Automated**: Workflow analyzes conventional commits and bumps version automatically
+17. **No Manual Bumping**: Version is auto-updated based on commit message types
 
 ## Testing Requirements ⚠️ MANDATORY
 
@@ -400,7 +503,7 @@ test('function should handle error cases', async () => {
 # Rust formatting and linting (in src-tauri directory)
 cd src-tauri
 cargo fmt
-cargo clippy --tests -- -W clippy::all -A clippy::too_many_arguments
+cargo clippy --all-targets --all-features -- -W clippy::all
 
 # JavaScript syntax check (from project root)
 for file in ui/*.js; do
@@ -416,6 +519,8 @@ for file in ui/*.html; do
   grep -q "</html>" "$file" || (echo "Missing closing html tag in $file" && exit 1)
 done
 ```
+
+**Note**: Run clippy with `--all-targets --all-features` to catch all warnings including test code.
 
 ### 3. Verify Build Success
 ```bash
@@ -497,6 +602,63 @@ setTimeout(() => {
 - **Code reviews**: Reviewers should flag any unmarked debug code
 - **CI validation**: Consider adding checks for debug markers
 
+## Tech Debt and Code Review
+
+### Regular Maintenance Tasks
+
+**Quarterly Review**:
+- Audit console.log statements - remove non-essential ones
+- Check for TODOs and FIXMEs - address or document
+- Review dependencies for updates
+- Run clippy with `--all-targets` and fix warnings
+- Update documentation for new patterns
+
+**Code Review Checklist**:
+- ✅ All functions documented (Rust doc comments)
+- ✅ Minimal logging (errors only, critical state)
+- ✅ No placeholder metadata
+- ✅ All tests passing
+- ✅ Zero clippy warnings
+- ✅ Conventional commit messages
+
+### Common Tech Debt Patterns
+
+**Frontend**:
+- Excessive `console.log` statements (keep under 30 total)
+- Hardcoded values that should be constants
+- Missing accessibility attributes
+- CSS not using custom properties
+
+**Backend**:
+- Missing documentation on public functions
+- Debug prints in production code
+- Unwrapped options without error handling (except in tests)
+- Placeholder package metadata
+
 **This prevents issues like the automatic zoom debug code that was left in production.**
 
-This app demonstrates a complete desktop application with proper error handling, user experience considerations, accessibility features, professional versioning, and most importantly, comprehensive test coverage that validates all functionality.
+## File Organization
+
+### Repository Structure
+```
+.github/
+  copilot-instructions.md  ← Repository-wide AI instructions (standard location)
+  workflows/               ← CI/CD automation
+src-tauri/
+  src/main.rs             ← All Rust backend code with tests
+  Cargo.toml              ← Rust dependencies and metadata
+  tauri.conf.json         ← Tauri configuration
+ui/
+  index.html              ← Main application UI
+  main.js                 ← Frontend application logic
+  styles.css              ← All styling and theming
+  test-*.js               ← Frontend test files
+  test-runner.html        ← Manual test interface
+```
+
+### Configuration Files
+- `.github/copilot-instructions.md` - Repository-wide instructions (this file)
+- `.clippy.toml` - Rust linting configuration
+- `run-tests.sh` - Unified test runner script
+
+This app demonstrates a complete desktop application with proper error handling, user experience considerations, accessibility features, professional versioning, comprehensive documentation, and thorough test coverage that validates all functionality.
