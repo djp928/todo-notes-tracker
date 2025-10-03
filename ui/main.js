@@ -35,7 +35,7 @@ async function initTauriAPI() {
         await invokeFunc('get_app_data_dir');
         // Store globally for use throughout the app
         window.invoke = invokeFunc;
-        window.listen = () => Promise.resolve(); // Dummy for now
+        
         console.log('✓ Tauri API initialized successfully');
         return true;
     } catch (error) {
@@ -70,6 +70,9 @@ let zoomLevel = 1.0;
 const zoomStep = 0.1;
 const minZoom = 0.5;
 const maxZoom = 3.0;
+
+// Dark mode state
+let darkMode = false;
 
 // DOM elements
 const currentDateEl = document.getElementById('current-date');
@@ -109,6 +112,9 @@ const zoomOutBtn = document.getElementById('zoom-out');
 const zoomResetBtn = document.getElementById('zoom-reset');
 const zoomLevelEl = document.getElementById('zoom-level');
 
+// Dark mode element
+const darkModeToggleBtn = document.getElementById('dark-mode-toggle');
+
 // Initialize the application
 async function initApp() {
     try {
@@ -123,13 +129,16 @@ async function initApp() {
         dataDir = await window.invoke('get_app_data_dir');
         console.log('App data directory:', dataDir);
         
+        // Load dark mode preference BEFORE setting up event listeners to avoid race condition
+        await loadDarkModePreference();
+        
         // Load today's data
         await loadDayData(currentDate);
         
         // Load calendar events
         await loadCalendarEventsFromStorage();
         
-        // Set up event listeners
+        // Set up event listeners (after preference is loaded)
         setupEventListeners();
         
         // Initialize calendar
@@ -247,6 +256,14 @@ function setupEventListeners() {
     
     // Keyboard shortcuts for zoom
     document.addEventListener('keydown', handleZoomKeyboard);
+    
+    // Dark mode toggle
+    if (darkModeToggleBtn) {
+        darkModeToggleBtn.addEventListener('click', () => {
+            console.log('Dark mode toggle clicked');
+            toggleDarkMode();
+        });
+    }
     
     // Auto-save on window blur/close
     window.addEventListener('blur', saveDayData);
@@ -1282,6 +1299,56 @@ function handleZoomKeyboard(e) {
                 zoomReset();
                 break;
         }
+    }
+}
+
+// Dark mode functions
+function toggleDarkMode() {
+    darkMode = !darkMode;
+    applyDarkMode();
+    saveDarkModePreference();
+}
+
+function applyDarkMode() {
+    if (darkMode) {
+        document.body.classList.add('dark-mode');
+        if (darkModeToggleBtn) {
+            darkModeToggleBtn.textContent = '☀️';
+            darkModeToggleBtn.title = 'Switch to light mode';
+            darkModeToggleBtn.setAttribute('aria-checked', 'true');
+        }
+    } else {
+        document.body.classList.remove('dark-mode');
+        if (darkModeToggleBtn) {
+            darkModeToggleBtn.textContent = '🌙';
+            darkModeToggleBtn.title = 'Switch to dark mode';
+            darkModeToggleBtn.setAttribute('aria-checked', 'false');
+        }
+    }
+    console.log('Dark mode:', darkMode ? 'enabled' : 'disabled');
+}
+
+async function saveDarkModePreference() {
+    try {
+        await window.invoke('save_dark_mode_preference', {
+            dark_mode: darkMode
+        });
+        console.log('Dark mode preference saved:', darkMode);
+    } catch (error) {
+        console.error('Failed to save dark mode preference:', error);
+    }
+}
+
+async function loadDarkModePreference() {
+    try {
+        darkMode = await window.invoke('load_dark_mode_preference');
+        applyDarkMode();
+        console.log('Dark mode preference loaded:', darkMode);
+    } catch (error) {
+        console.error('Failed to load dark mode preference:', error);
+        // Default to light mode if loading fails
+        darkMode = false;
+        applyDarkMode();
     }
 }
 

@@ -182,6 +182,55 @@ async fn load_calendar_events(data_dir: String) -> Result<HashMap<String, Vec<St
     }
 }
 
+// Save dark mode preference
+#[tauri::command]
+fn save_dark_mode_preference(dark_mode: bool, app: tauri::AppHandle) -> Result<(), String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+    let file_path = data_dir.join("dark_mode.json");
+
+    let json_content = serde_json::json!({ "dark_mode": dark_mode });
+    let json_str = serde_json::to_string_pretty(&json_content)
+        .map_err(|e| format!("Failed to serialize dark mode preference: {}", e))?;
+
+    fs::write(&file_path, json_str)
+        .map_err(|e| format!("Failed to write dark mode preference file: {}", e))?;
+
+    Ok(())
+}
+
+// Load dark mode preference
+#[tauri::command]
+fn load_dark_mode_preference(app: tauri::AppHandle) -> Result<bool, String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+    let file_path = data_dir.join("dark_mode.json");
+
+    if file_path.exists() {
+        let file_content = fs::read_to_string(&file_path)
+            .map_err(|e| format!("Failed to read dark mode preference file: {}", e))?;
+
+        let json: serde_json::Value = serde_json::from_str(&file_content)
+            .map_err(|e| format!("Failed to parse dark mode preference: {}", e))?;
+
+        let dark_mode = json
+            .get("dark_mode")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+
+        Ok(dark_mode)
+    } else {
+        // Return false (light mode) if file doesn't exist
+        Ok(false)
+    }
+}
+
 fn main() {
     // Only run the Tauri app if we're not in test mode
     #[cfg(not(test))]
@@ -196,7 +245,9 @@ fn main() {
                 stop_pomodoro_timer,
                 send_notification,
                 save_calendar_events,
-                load_calendar_events
+                load_calendar_events,
+                save_dark_mode_preference,
+                load_dark_mode_preference
             ])
             .run(tauri::generate_context!())
             .expect("error while running tauri application");
