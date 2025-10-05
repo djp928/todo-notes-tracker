@@ -27,6 +27,9 @@ jobs:
             path: ~/.cargo/registry
             key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
             
+        - name: Add Rust format
+          run: rustup component add rustfmt
+
         - name: Cache cargo index
           uses: actions/cache@v3
           with:
