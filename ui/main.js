@@ -1251,7 +1251,7 @@ function applyDarkMode() {
 async function saveDarkModePreference() {
     try {
         await window.invoke('save_dark_mode_preference', {
-            dark_mode: darkMode
+            darkMode: darkMode
         });
     } catch (error) {
         console.error('Failed to save dark mode preference:', error);
@@ -1273,7 +1273,7 @@ async function loadDarkModePreference() {
 async function saveZoomPreference() {
     try {
         await window.invoke('save_zoom_preference', {
-            zoom_level: zoomLevel
+            zoomLevel: zoomLevel
         });
     } catch (error) {
         console.error('Failed to save zoom preference:', error);
