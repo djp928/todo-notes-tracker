@@ -306,16 +306,10 @@ fn load_dark_mode_preference(app: tauri::AppHandle) -> Result<bool, String> {
     }
 }
 
-/// Save user's zoom level preference.
+/// Internal helper: Save zoom preference to a file path
 ///
-/// # Arguments
-/// * `zoom_level` - Zoom level as a floating point number (e.g., 1.0 for 100%)
-/// * `app` - Tauri app handle for accessing app data directory
-///
-/// # Errors
-/// Returns an error if preference cannot be saved.
-#[tauri::command]
-fn save_zoom_preference(zoom_level: f64, app: tauri::AppHandle) -> Result<(), String> {
+/// This function is extracted for testing purposes.
+fn save_zoom_preference_to_path(zoom_level: f64, file_path: PathBuf) -> Result<(), String> {
     // Validate and clamp zoom level before saving to ensure consistency
     let zoom_level = if zoom_level.is_finite() && (0.5..=3.0).contains(&zoom_level) {
         zoom_level
@@ -327,13 +321,6 @@ fn save_zoom_preference(zoom_level: f64, app: tauri::AppHandle) -> Result<(), St
         ));
     };
 
-    let data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-
-    let file_path = data_dir.join("zoom_level.json");
-
     let json_content = serde_json::json!({ "zoom_level": zoom_level });
     let json_str = serde_json::to_string_pretty(&json_content)
         .map_err(|e| format!("Failed to serialize zoom preference: {}", e))?;
@@ -344,25 +331,10 @@ fn save_zoom_preference(zoom_level: f64, app: tauri::AppHandle) -> Result<(), St
     Ok(())
 }
 
-/// Load user's zoom level preference.
+/// Internal helper: Load zoom preference from a file path
 ///
-/// # Arguments
-/// * `app` - Tauri app handle for accessing app data directory
-///
-/// # Returns
-/// Zoom level as a floating point number. Defaults to 1.0 (100%) if not set.
-///
-/// # Errors
-/// Returns an error if preference file cannot be read.
-#[tauri::command]
-fn load_zoom_preference(app: tauri::AppHandle) -> Result<f64, String> {
-    let data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-
-    let file_path = data_dir.join("zoom_level.json");
-
+/// This function is extracted for testing purposes.
+fn load_zoom_preference_from_path(file_path: PathBuf) -> Result<f64, String> {
     if file_path.exists() {
         let file_content = fs::read_to_string(&file_path)
             .map_err(|e| format!("Failed to read zoom preference file: {}", e))?;
@@ -387,6 +359,46 @@ fn load_zoom_preference(app: tauri::AppHandle) -> Result<f64, String> {
         // Return 1.0 (100% zoom) if file doesn't exist
         Ok(1.0)
     }
+}
+
+/// Save user's zoom level preference.
+///
+/// # Arguments
+/// * `zoom_level` - Zoom level as a floating point number (e.g., 1.0 for 100%)
+/// * `app` - Tauri app handle for accessing app data directory
+///
+/// # Errors
+/// Returns an error if preference cannot be saved.
+#[tauri::command]
+fn save_zoom_preference(zoom_level: f64, app: tauri::AppHandle) -> Result<(), String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+    let file_path = data_dir.join("zoom_level.json");
+    save_zoom_preference_to_path(zoom_level, file_path)
+}
+
+/// Load user's zoom level preference.
+///
+/// # Arguments
+/// * `app` - Tauri app handle for accessing app data directory
+///
+/// # Returns
+/// Zoom level as a floating point number. Defaults to 1.0 (100%) if not set.
+///
+/// # Errors
+/// Returns an error if preference file cannot be read.
+#[tauri::command]
+fn load_zoom_preference(app: tauri::AppHandle) -> Result<f64, String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+    let file_path = data_dir.join("zoom_level.json");
+    load_zoom_preference_from_path(file_path)
 }
 
 fn main() {
@@ -725,18 +737,12 @@ mod tests {
         let temp_dir = setup_test_dir();
         let file_path = temp_dir.path().join("zoom_level.json");
 
-        // Test saving zoom level
+        // Test saving zoom level using the internal helper
         let zoom_level = 1.5;
-        let json_content = serde_json::json!({ "zoom_level": zoom_level });
-        let json_str = serde_json::to_string_pretty(&json_content).unwrap();
-        fs::write(&file_path, json_str).unwrap();
+        save_zoom_preference_to_path(zoom_level, file_path.clone()).unwrap();
 
-        // Test loading zoom level
-        assert!(file_path.exists());
-        let file_content = fs::read_to_string(&file_path).unwrap();
-        let json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
-        let loaded_zoom = json.get("zoom_level").and_then(|v| v.as_f64()).unwrap();
-
+        // Test loading zoom level using the internal helper
+        let loaded_zoom = load_zoom_preference_from_path(file_path.clone()).unwrap();
         assert_eq!(loaded_zoom, zoom_level);
     }
 
@@ -748,17 +754,8 @@ mod tests {
         // File doesn't exist, should default to 1.0
         assert!(!file_path.exists());
 
-        // Simulate default behavior
-        let default_zoom = if file_path.exists() {
-            let file_content = fs::read_to_string(&file_path).unwrap();
-            let json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
-            json.get("zoom_level")
-                .and_then(|v| v.as_f64())
-                .unwrap_or(1.0)
-        } else {
-            1.0
-        };
-
+        // Use the internal helper to load zoom preference
+        let default_zoom = load_zoom_preference_from_path(file_path).unwrap();
         assert_eq!(default_zoom, 1.0);
     }
 
@@ -768,43 +765,37 @@ mod tests {
         let file_path = temp_dir.path().join("zoom_level.json");
 
         // Test minimum zoom (0.5)
-        let min_zoom = 0.5;
-        let json_content = serde_json::json!({ "zoom_level": min_zoom });
-        fs::write(
-            &file_path,
-            serde_json::to_string_pretty(&json_content).unwrap(),
-        )
-        .unwrap();
-        let file_content = fs::read_to_string(&file_path).unwrap();
-        let json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
-        let loaded = json.get("zoom_level").and_then(|v| v.as_f64()).unwrap();
-        assert_eq!(loaded, min_zoom);
+        save_zoom_preference_to_path(0.5, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded, 0.5);
 
         // Test maximum zoom (3.0)
-        let max_zoom = 3.0;
-        let json_content = serde_json::json!({ "zoom_level": max_zoom });
-        fs::write(
-            &file_path,
-            serde_json::to_string_pretty(&json_content).unwrap(),
-        )
-        .unwrap();
-        let file_content = fs::read_to_string(&file_path).unwrap();
-        let json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
-        let loaded = json.get("zoom_level").and_then(|v| v.as_f64()).unwrap();
-        assert_eq!(loaded, max_zoom);
+        save_zoom_preference_to_path(3.0, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded, 3.0);
 
         // Test normal zoom (1.0)
-        let normal_zoom = 1.0;
-        let json_content = serde_json::json!({ "zoom_level": normal_zoom });
-        fs::write(
-            &file_path,
-            serde_json::to_string_pretty(&json_content).unwrap(),
-        )
-        .unwrap();
-        let file_content = fs::read_to_string(&file_path).unwrap();
-        let json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
-        let loaded = json.get("zoom_level").and_then(|v| v.as_f64()).unwrap();
-        assert_eq!(loaded, normal_zoom);
+        save_zoom_preference_to_path(1.0, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path).unwrap();
+        assert_eq!(loaded, 1.0);
+    }
+
+    #[test]
+    fn test_zoom_preference_validation() {
+        let temp_dir = setup_test_dir();
+        let file_path = temp_dir.path().join("zoom_level.json");
+
+        // Test invalid values are rejected
+        assert!(save_zoom_preference_to_path(10.0, file_path.clone()).is_err());
+        assert!(save_zoom_preference_to_path(-1.0, file_path.clone()).is_err());
+        assert!(save_zoom_preference_to_path(f64::NAN, file_path.clone()).is_err());
+        assert!(save_zoom_preference_to_path(f64::INFINITY, file_path.clone()).is_err());
+
+        // Test edge cases at boundaries
+        assert!(save_zoom_preference_to_path(0.4, file_path.clone()).is_err()); // Just below min
+        assert!(save_zoom_preference_to_path(3.1, file_path.clone()).is_err()); // Just above max
+        assert!(save_zoom_preference_to_path(0.5, file_path.clone()).is_ok()); // Exactly min
+        assert!(save_zoom_preference_to_path(3.0, file_path).is_ok()); // Exactly max
     }
 
     #[test]
@@ -812,19 +803,12 @@ mod tests {
         let temp_dir = setup_test_dir();
         let file_path = temp_dir.path().join("zoom_level.json");
 
-        // Save zoom level multiple times
+        // Save zoom level multiple times using the internal helper
         for zoom in [0.5, 0.8, 1.0, 1.5, 2.0, 3.0] {
-            let json_content = serde_json::json!({ "zoom_level": zoom });
-            fs::write(
-                &file_path,
-                serde_json::to_string_pretty(&json_content).unwrap(),
-            )
-            .unwrap();
+            save_zoom_preference_to_path(zoom, file_path.clone()).unwrap();
 
             // Verify it was saved correctly
-            let file_content = fs::read_to_string(&file_path).unwrap();
-            let json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
-            let loaded = json.get("zoom_level").and_then(|v| v.as_f64()).unwrap();
+            let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
             assert_eq!(loaded, zoom);
         }
     }
