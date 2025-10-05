@@ -15,111 +15,116 @@ env:
 jobs:
   test-rust:
     name: Test Rust Backend
-    runs-on: ivangabriele/tauri:debian-bookworm-22
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Cache cargo registry
-      uses: actions/cache@v3
-      with:
-        path: ~/.cargo/registry
-        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    runs-on: ubuntu-latest
+    container:
+        image: ivangabriele/tauri:debian-bullseye-18    
+        steps:
+        - uses: actions/checkout@v4
         
-    - name: Cache cargo index
-      uses: actions/cache@v3
-      with:
-        path: ~/.cargo/git
-        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-        
-    - name: Cache cargo build
-      uses: actions/cache@v3
-      with:
-        path: src-tauri/target
-        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+        - name: Cache cargo registry
+          uses: actions/cache@v3
+          with:
+            path: ~/.cargo/registry
+            key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+            
+        - name: Cache cargo index
+          uses: actions/cache@v3
+          with:
+            path: ~/.cargo/git
+            key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+            
+        - name: Cache cargo build
+          uses: actions/cache@v3
+          with:
+            path: src-tauri/target
+            key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Run Rust tests
-      working-directory: src-tauri
-      env:
-        DISPLAY: ":99"
-        TAURI_SKIP_ICON_GENERATION: "true"
-        CI: "true"
-      run: |
-        export DISPLAY=:99
-        Xvfb :99 -screen 0 1024x768x24 &
-        sleep 3
-        cargo test --verbose
-      
-    - name: Check Rust formatting
-      working-directory: src-tauri
-      env:
-        TAURI_SKIP_ICON_GENERATION: "true"
-        CI: "true"
-      run: cargo fmt --check
-      
-    - name: Run Rust linter
-      working-directory: src-tauri
-      env:
-        TAURI_SKIP_ICON_GENERATION: "true"
-        CI: "true"
-      run: cargo clippy --tests -- -W clippy::all -A clippy::too_many_arguments
+        - name: Run Rust tests
+          working-directory: src-tauri
+          env:
+            DISPLAY: ":99"
+            TAURI_SKIP_ICON_GENERATION: "true"
+            CI: "true"
+          run: |
+            export DISPLAY=:99
+            Xvfb :99 -screen 0 1024x768x24 &
+            sleep 3
+            cargo test --verbose
+          
+        - name: Check Rust formatting
+          working-directory: src-tauri
+          env:
+            TAURI_SKIP_ICON_GENERATION: "true"
+            CI: "true"
+          run: cargo fmt --check
+          
+        - name: Run Rust linter
+          working-directory: src-tauri
+          env:
+            TAURI_SKIP_ICON_GENERATION: "true"
+            CI: "true"
+          run: cargo clippy --tests -- -W clippy::all -A clippy::too_many_arguments
 
   test-javascript:
     name: Test JavaScript Frontend
-    runs-on: ivangabriele/tauri:debian-bullseye-18
+    runs-on: ubuntu-latest
+    container: 
+        image: ivangabriele/tauri:debian-bullseye-18
     
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Check JavaScript syntax
-      run: |
-        for file in ui/*.js; do
-          echo "Checking $file"
-          node -c "$file"
-        done
+        - uses: actions/checkout@v4
         
-    - name: Check HTML files
-      run: |
-        # Basic HTML validation - check for proper structure
-        for file in ui/*.html; do
-          echo "Checking $file"
-          # Check for basic HTML structure
-          grep -q "<!DOCTYPE html>" "$file" || (echo "Missing DOCTYPE in $file" && exit 1)
-          grep -q "<html" "$file" || (echo "Missing html tag in $file" && exit 1)
-          grep -q "</html>" "$file" || (echo "Missing closing html tag in $file" && exit 1)
-        done
+        - name: Check JavaScript syntax
+          run: |
+            for file in ui/*.js; do
+              echo "Checking $file"
+              node -c "$file"
+            done
+            
+        - name: Check HTML files
+          run: |
+            # Basic HTML validation - check for proper structure
+            for file in ui/*.html; do
+              echo "Checking $file"
+              # Check for basic HTML structure
+              grep -q "<!DOCTYPE html>" "$file" || (echo "Missing DOCTYPE in $file" && exit 1)
+              grep -q "<html" "$file" || (echo "Missing html tag in $file" && exit 1)
+              grep -q "</html>" "$file" || (echo "Missing closing html tag in $file" && exit 1)
+            done
 
   build-tauri:
     name: Build Tauri Application
-    runs-on: ivangabriele/tauri:debian-bullseye-18
+    runs-on: ubuntu-latest
+    container:
+        image: ivangabriele/tauri:debian-bullseye-18
     needs: [test-rust, test-javascript]
     
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Cache cargo
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          src-tauri/target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        - uses: actions/checkout@v4
         
-    - name: Build Tauri app
-      working-directory: src-tauri
-      env:
-        DISPLAY: ":99"
-        TAURI_SKIP_ICON_GENERATION: "true"
-        TAURI_SKIP_DEVTOOLS_CHECK: "true"
-        CI: "true"
-        GITHUB_ACTIONS: "true"
-      run: |
-        export DISPLAY=:99
-        export TAURI_SKIP_ICON_GENERATION=true
-        export TAURI_SKIP_DEVTOOLS_CHECK=true
-        Xvfb :99 -screen 0 1024x768x24 &
-        sleep 3
-        echo "Building with icon skip enabled..."
-        echo "TAURI_SKIP_ICON_GENERATION=$TAURI_SKIP_ICON_GENERATION"
-        cargo build --release
+        - name: Cache cargo
+          uses: actions/cache@v3
+          with:
+            path: |
+              ~/.cargo/registry
+              ~/.cargo/git
+              src-tauri/target
+            key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            
+        - name: Build Tauri app
+          working-directory: src-tauri
+          env:
+            DISPLAY: ":99"
+            TAURI_SKIP_ICON_GENERATION: "true"
+            TAURI_SKIP_DEVTOOLS_CHECK: "true"
+            CI: "true"
+            GITHUB_ACTIONS: "true"
+          run: |
+            export DISPLAY=:99
+            export TAURI_SKIP_ICON_GENERATION=true
+            export TAURI_SKIP_DEVTOOLS_CHECK=true
+            Xvfb :99 -screen 0 1024x768x24 &
+            sleep 3
+            echo "Building with icon skip enabled..."
+            echo "TAURI_SKIP_ICON_GENERATION=$TAURI_SKIP_ICON_GENERATION"
+            cargo build --release
