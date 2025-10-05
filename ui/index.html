@@ -10,6 +10,13 @@
     <script>
         // This script runs SYNCHRONOUSLY before body renders to prevent FOUC
         // Read preferences from localStorage (instant, synchronous)
+        
+        // Note: Zoom limits are duplicated here for synchronous access.
+        // These must match MIN_ZOOM/MAX_ZOOM in Rust and minZoom/maxZoom in main.js
+        // Future: Could be injected via build process or data attributes
+        const INLINE_MIN_ZOOM = 0.5;
+        const INLINE_MAX_ZOOM = 3.0;
+        
         try {
             const cachedDarkMode = localStorage.getItem('darkMode');
             const cachedZoomLevel = localStorage.getItem('zoomLevel');
@@ -22,7 +29,7 @@
             // Apply zoom immediately if cached
             if (cachedZoomLevel) {
                 const zoom = parseFloat(cachedZoomLevel);
-                if (!isNaN(zoom) && zoom >= 0.5 && zoom <= 3.0) {
+                if (!isNaN(zoom) && zoom >= INLINE_MIN_ZOOM && zoom <= INLINE_MAX_ZOOM) {
                     document.documentElement.style.setProperty('--zoom-scale', zoom);
                 }
             }

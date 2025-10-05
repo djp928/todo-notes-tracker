@@ -336,18 +336,18 @@ fn get_zoom_limits() -> ZoomLimits {
 ///
 /// This function is extracted for testing purposes.
 fn save_zoom_preference_to_path(zoom_level: f64, file_path: PathBuf) -> Result<(), String> {
-    // Validate and clamp zoom level before saving to ensure consistency
-    let zoom_level = if zoom_level.is_finite() && (MIN_ZOOM..=MAX_ZOOM).contains(&zoom_level) {
-        zoom_level
-    } else {
-        // Reject invalid values with an error
+    // Validate zoom level is finite
+    if !zoom_level.is_finite() {
         return Err(format!(
-            "Invalid zoom level: {}. Must be between {} and {}",
+            "Invalid zoom level: {}. Must be a finite number between {} and {}",
             zoom_level, MIN_ZOOM, MAX_ZOOM
         ));
-    };
+    }
 
-    let json_content = serde_json::json!({ "zoom_level": zoom_level });
+    // Clamp to supported range to ensure consistency
+    let validated_zoom = zoom_level.clamp(MIN_ZOOM, MAX_ZOOM);
+
+    let json_content = serde_json::json!({ "zoom_level": validated_zoom });
     let json_str = serde_json::to_string_pretty(&json_content)
         .map_err(|e| format!("Failed to serialize zoom preference: {}", e))?;
 
@@ -817,17 +817,31 @@ mod tests {
         let temp_dir = setup_test_dir();
         let file_path = temp_dir.path().join("zoom_level.json");
 
-        // Test invalid values are rejected
-        assert!(save_zoom_preference_to_path(10.0, file_path.clone()).is_err());
-        assert!(save_zoom_preference_to_path(-1.0, file_path.clone()).is_err());
+        // Test invalid values (NaN, infinity) are rejected
         assert!(save_zoom_preference_to_path(f64::NAN, file_path.clone()).is_err());
         assert!(save_zoom_preference_to_path(f64::INFINITY, file_path.clone()).is_err());
+        assert!(save_zoom_preference_to_path(f64::NEG_INFINITY, file_path.clone()).is_err());
 
-        // Test edge cases at boundaries
-        assert!(save_zoom_preference_to_path(0.4, file_path.clone()).is_err()); // Just below min
-        assert!(save_zoom_preference_to_path(3.1, file_path.clone()).is_err()); // Just above max
-        assert!(save_zoom_preference_to_path(0.5, file_path.clone()).is_ok()); // Exactly min
-        assert!(save_zoom_preference_to_path(3.0, file_path).is_ok()); // Exactly max
+        // Test out-of-range values are clamped
+        save_zoom_preference_to_path(10.0, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded, 3.0); // Clamped to MAX_ZOOM
+
+        save_zoom_preference_to_path(-1.0, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded, 0.5); // Clamped to MIN_ZOOM
+
+        save_zoom_preference_to_path(0.4, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded, 0.5); // Clamped to MIN_ZOOM
+
+        save_zoom_preference_to_path(3.1, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded, 3.0); // Clamped to MAX_ZOOM
+
+        // Test edge cases at boundaries work correctly
+        assert!(save_zoom_preference_to_path(0.5, file_path.clone()).is_ok());
+        assert!(save_zoom_preference_to_path(3.0, file_path).is_ok());
     }
 
     #[test]
