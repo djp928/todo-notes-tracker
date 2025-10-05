@@ -1231,6 +1231,7 @@ function toggleDarkMode() {
 
 function applyDarkMode() {
     if (darkMode) {
+        document.documentElement.classList.add('dark-mode');
         document.body.classList.add('dark-mode');
         if (darkModeToggleBtn) {
             darkModeToggleBtn.textContent = '☀️';
@@ -1238,6 +1239,7 @@ function applyDarkMode() {
             darkModeToggleBtn.setAttribute('aria-checked', 'true');
         }
     } else {
+        document.documentElement.classList.remove('dark-mode');
         document.body.classList.remove('dark-mode');
         if (darkModeToggleBtn) {
             darkModeToggleBtn.textContent = '🌙';

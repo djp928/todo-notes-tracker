@@ -5,6 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Todo Notes Tracker</title>
     <link rel="stylesheet" href="styles.css" />
+    
+    <!-- Load preferences immediately to prevent flash -->
+    <script>
+        // This script runs synchronously before body renders to prevent FOUC (Flash of Unstyled Content)
+        (async function() {
+            try {
+                // Wait for Tauri to be ready
+                if (window.__TAURI__) {
+                    const { invoke } = window.__TAURI__.core;
+                    
+                    // Load preferences in parallel
+                    const [darkMode, zoomLevel] = await Promise.all([
+                        invoke('load_dark_mode_preference').catch(() => false),
+                        invoke('load_zoom_preference').catch(() => 1.0)
+                    ]);
+                    
+                    // Apply dark mode immediately
+                    if (darkMode) {
+                        document.documentElement.classList.add('dark-mode');
+                    }
+                    
+                    // Apply zoom immediately
+                    document.documentElement.style.setProperty('--zoom-scale', zoomLevel);
+                }
+            } catch (error) {
+                console.error('Failed to load initial preferences:', error);
+                // Continue with defaults - no flash since we haven't rendered yet
+            }
+        })();
+    </script>
 </head>
 <body>
     <div class="app-container">
