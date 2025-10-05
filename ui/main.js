@@ -66,6 +66,7 @@ let zoomLevel = 1.0;
 const zoomStep = 0.1;
 const minZoom = 0.5;
 const maxZoom = 3.0;
+let zoomSaveTimeout = null; // Debounce timer for zoom saves
 
 // Dark mode state
 let darkMode = false;
@@ -1172,7 +1173,7 @@ function zoomIn() {
     if (zoomLevel < maxZoom) {
         zoomLevel = Math.min(maxZoom, zoomLevel + zoomStep);
         applyZoom();
-        saveZoomPreference();
+        debouncedSaveZoom();
     } else {
     }
 }
@@ -1181,7 +1182,7 @@ function zoomOut() {
     if (zoomLevel > minZoom) {
         zoomLevel = Math.max(minZoom, zoomLevel - zoomStep);
         applyZoom();
-        saveZoomPreference();
+        debouncedSaveZoom();
     } else {
     }
 }
@@ -1189,7 +1190,20 @@ function zoomOut() {
 function zoomReset() {
     zoomLevel = 1.0;
     applyZoom();
+    // Reset should save immediately (no debounce) since it's an explicit action
     saveZoomPreference();
+}
+
+// Debounced zoom save to reduce filesystem writes
+function debouncedSaveZoom() {
+    // Clear any existing timeout
+    if (zoomSaveTimeout) {
+        clearTimeout(zoomSaveTimeout);
+    }
+    // Set new timeout to save after 300ms of no changes
+    zoomSaveTimeout = setTimeout(() => {
+        saveZoomPreference();
+    }, 300);
 }
 
 function applyZoom() {
@@ -1232,7 +1246,6 @@ function toggleDarkMode() {
 function applyDarkMode() {
     if (darkMode) {
         document.documentElement.classList.add('dark-mode');
-        document.body.classList.add('dark-mode');
         if (darkModeToggleBtn) {
             darkModeToggleBtn.textContent = '☀️';
             darkModeToggleBtn.title = 'Switch to light mode';
@@ -1240,7 +1253,6 @@ function applyDarkMode() {
         }
     } else {
         document.documentElement.classList.remove('dark-mode');
-        document.body.classList.remove('dark-mode');
         if (darkModeToggleBtn) {
             darkModeToggleBtn.textContent = '🌙';
             darkModeToggleBtn.title = 'Switch to dark mode';
@@ -1295,6 +1307,13 @@ async function saveZoomPreference() {
 async function loadZoomPreference() {
     try {
         zoomLevel = await window.invoke('load_zoom_preference');
+        
+        // Validate and clamp zoom level to supported range
+        if (isNaN(zoomLevel) || zoomLevel < 0.5 || zoomLevel > 3.0) {
+            console.warn('Invalid zoom level loaded:', zoomLevel, '- resetting to 1.0');
+            zoomLevel = 1.0;
+        }
+        
         // Update localStorage cache to stay in sync
         localStorage.setItem('zoomLevel', zoomLevel.toString());
         applyZoom();

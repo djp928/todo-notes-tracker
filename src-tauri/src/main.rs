@@ -364,6 +364,13 @@ fn load_zoom_preference(app: tauri::AppHandle) -> Result<f64, String> {
             .and_then(|v| v.as_f64())
             .unwrap_or(1.0);
 
+        // Clamp to supported range [0.5, 3.0]; fall back to 1.0 if out of range
+        let zoom_level = if (0.5..=3.0).contains(&zoom_level) {
+            zoom_level
+        } else {
+            1.0
+        };
+
         Ok(zoom_level)
     } else {
         // Return 1.0 (100% zoom) if file doesn't exist
