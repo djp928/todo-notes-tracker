@@ -64,8 +64,9 @@ const defaultNotesWidth = 300;
 // Zoom state
 let zoomLevel = 1.0;
 const zoomStep = 0.1;
-const minZoom = 0.5;
-const maxZoom = 3.0;
+// Zoom limits will be fetched from backend to ensure consistency
+let minZoom = 0.5;
+let maxZoom = 3.0;
 let zoomSaveTimeout = null; // Debounce timer for zoom saves
 
 // Dark mode state
@@ -125,6 +126,9 @@ async function initApp() {
         
         // Load dark mode preference BEFORE setting up event listeners to avoid race condition
         await loadDarkModePreference();
+        
+        // Load zoom limits from backend (single source of truth)
+        await loadZoomLimits();
         
         // Load zoom preference
         await loadZoomPreference();
@@ -1304,6 +1308,18 @@ async function saveZoomPreference() {
         });
     } catch (error) {
         console.error('Failed to save zoom preference:', error);
+    }
+}
+
+async function loadZoomLimits() {
+    try {
+        const limits = await window.invoke('get_zoom_limits');
+        minZoom = limits.min_zoom;
+        maxZoom = limits.max_zoom;
+        console.log('Zoom limits loaded from backend:', minZoom, '-', maxZoom);
+    } catch (error) {
+        console.error('Failed to load zoom limits, using defaults:', error);
+        // Fallback to defaults (already set)
     }
 }
 

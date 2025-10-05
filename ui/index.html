@@ -11,9 +11,10 @@
         // This script runs SYNCHRONOUSLY before body renders to prevent FOUC
         // Read preferences from localStorage (instant, synchronous)
         
-        // Note: Zoom limits are duplicated here for synchronous access.
-        // These must match MIN_ZOOM/MAX_ZOOM in Rust and minZoom/maxZoom in main.js
-        // Future: Could be injected via build process or data attributes
+        // Note: Zoom limits are defined here as fallback constants.
+        // The actual limits are fetched from backend via get_zoom_limits() during initialization.
+        // These fallback values match MIN_ZOOM/MAX_ZOOM in Rust backend.
+        // Using constants here because we cannot make async calls in synchronous inline script.
         const INLINE_MIN_ZOOM = 0.5;
         const INLINE_MAX_ZOOM = 3.0;
         
