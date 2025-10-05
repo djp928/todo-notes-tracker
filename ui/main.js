@@ -64,8 +64,10 @@ const defaultNotesWidth = 300;
 // Zoom state
 let zoomLevel = 1.0;
 const zoomStep = 0.1;
-const minZoom = 0.5;
-const maxZoom = 3.0;
+// Zoom limits will be fetched from backend to ensure consistency
+let minZoom = 0.5;
+let maxZoom = 3.0;
+let zoomSaveTimeout = null; // Debounce timer for zoom saves
 
 // Dark mode state
 let darkMode = false;
@@ -125,6 +127,12 @@ async function initApp() {
         // Load dark mode preference BEFORE setting up event listeners to avoid race condition
         await loadDarkModePreference();
         
+        // Load zoom limits from backend (single source of truth)
+        await loadZoomLimits();
+        
+        // Load zoom preference
+        await loadZoomPreference();
+        
         // Load today's data
         await loadDayData(currentDate);
         
@@ -137,7 +145,7 @@ async function initApp() {
         // Initialize calendar
         updateCalendar();
         
-        // Initialize zoom level
+        // Initialize zoom level (in case preference loading failed)
         applyZoom();
         
     } catch (error) {
@@ -1169,7 +1177,7 @@ function zoomIn() {
     if (zoomLevel < maxZoom) {
         zoomLevel = Math.min(maxZoom, zoomLevel + zoomStep);
         applyZoom();
-    } else {
+        debouncedSaveZoom();
     }
 }
 
@@ -1177,13 +1185,32 @@ function zoomOut() {
     if (zoomLevel > minZoom) {
         zoomLevel = Math.max(minZoom, zoomLevel - zoomStep);
         applyZoom();
-    } else {
+        debouncedSaveZoom();
     }
 }
 
 function zoomReset() {
     zoomLevel = 1.0;
     applyZoom();
+    // Clear any pending debounced save to avoid extra write
+    if (zoomSaveTimeout) {
+        clearTimeout(zoomSaveTimeout);
+        zoomSaveTimeout = null;
+    }
+    // Reset should save immediately since it's an explicit action
+    saveZoomPreference();
+}
+
+// Debounced zoom save to reduce filesystem writes
+function debouncedSaveZoom() {
+    // Clear any existing timeout
+    if (zoomSaveTimeout) {
+        clearTimeout(zoomSaveTimeout);
+    }
+    // Set new timeout to save after 300ms of no changes
+    zoomSaveTimeout = setTimeout(() => {
+        saveZoomPreference();
+    }, 300);
 }
 
 function applyZoom() {
@@ -1225,14 +1252,14 @@ function toggleDarkMode() {
 
 function applyDarkMode() {
     if (darkMode) {
-        document.body.classList.add('dark-mode');
+        document.documentElement.classList.add('dark-mode');
         if (darkModeToggleBtn) {
             darkModeToggleBtn.textContent = '☀️';
             darkModeToggleBtn.title = 'Switch to light mode';
             darkModeToggleBtn.setAttribute('aria-checked', 'true');
         }
     } else {
-        document.body.classList.remove('dark-mode');
+        document.documentElement.classList.remove('dark-mode');
         if (darkModeToggleBtn) {
             darkModeToggleBtn.textContent = '🌙';
             darkModeToggleBtn.title = 'Switch to dark mode';
@@ -1244,8 +1271,12 @@ function applyDarkMode() {
 
 async function saveDarkModePreference() {
     try {
+        // Cache in localStorage for instant loading on next startup
+        localStorage.setItem('darkMode', darkMode.toString());
+        
+        // Save to backend for persistence across devices/reinstalls
         await window.invoke('save_dark_mode_preference', {
-            dark_mode: darkMode
+            darkMode: darkMode
         });
     } catch (error) {
         console.error('Failed to save dark mode preference:', error);
@@ -1255,12 +1286,63 @@ async function saveDarkModePreference() {
 async function loadDarkModePreference() {
     try {
         darkMode = await window.invoke('load_dark_mode_preference');
+        // Update localStorage cache to stay in sync
+        localStorage.setItem('darkMode', darkMode.toString());
         applyDarkMode();
     } catch (error) {
         console.error('Failed to load dark mode preference:', error);
         // Default to light mode if loading fails
         darkMode = false;
         applyDarkMode();
+    }
+}
+
+async function saveZoomPreference() {
+    try {
+        // Cache in localStorage for instant loading on next startup
+        localStorage.setItem('zoomLevel', zoomLevel.toString());
+        
+        // Save to backend for persistence across devices/reinstalls
+        await window.invoke('save_zoom_preference', {
+            zoomLevel: zoomLevel
+        });
+    } catch (error) {
+        console.error('Failed to save zoom preference:', error);
+    }
+}
+
+async function loadZoomLimits() {
+    try {
+        const limits = await window.invoke('get_zoom_limits');
+        minZoom = limits.min_zoom;
+        maxZoom = limits.max_zoom;
+        console.log('Zoom limits loaded from backend:', minZoom, '-', maxZoom);
+    } catch (error) {
+        console.error('Failed to load zoom limits, using defaults:', error);
+        // Fallback to defaults (already set)
+    }
+}
+
+async function loadZoomPreference() {
+    try {
+        zoomLevel = await window.invoke('load_zoom_preference');
+        
+        // Validate and clamp zoom level to supported range using defined constants
+        if (Number.isNaN(zoomLevel) || zoomLevel < minZoom || zoomLevel > maxZoom) {
+            console.warn('Invalid zoom level loaded:', zoomLevel, '- resetting to 1.0');
+            zoomLevel = 1.0;
+        }
+        
+        // Update localStorage cache to stay in sync
+        localStorage.setItem('zoomLevel', zoomLevel.toString());
+        applyZoom();
+    } catch (error) {
+        console.error('Failed to load zoom preference:', error);
+        // Default to 100% zoom if loading fails
+        zoomLevel = 1.0;
+        // Update cache to prevent visual flash on next startup
+        localStorage.setItem('zoomLevel', zoomLevel.toString());
+        applyZoom();
     }
 }
 

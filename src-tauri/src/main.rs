@@ -11,6 +11,17 @@ use std::path::PathBuf;
 use tauri::{Emitter, Manager, Window};
 use uuid::Uuid;
 
+// Zoom level constraints - shared across save/load to ensure consistency
+const MIN_ZOOM: f64 = 0.5;
+const MAX_ZOOM: f64 = 3.0;
+
+/// Zoom limits structure for exposing to frontend
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct ZoomLimits {
+    min_zoom: f64,
+    max_zoom: f64,
+}
+
 /// Represents a single todo item with bullet journal semantics
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct TodoItem {
@@ -306,6 +317,121 @@ fn load_dark_mode_preference(app: tauri::AppHandle) -> Result<bool, String> {
     }
 }
 
+/// Get zoom limits for the frontend.
+///
+/// This ensures the frontend and backend always use the same zoom range,
+/// preventing potential mismatches.
+///
+/// # Returns
+/// ZoomLimits structure with min and max zoom values.
+#[tauri::command]
+fn get_zoom_limits() -> ZoomLimits {
+    ZoomLimits {
+        min_zoom: MIN_ZOOM,
+        max_zoom: MAX_ZOOM,
+    }
+}
+
+/// Internal helper: Save zoom preference to a file path
+///
+/// This function is extracted for testing purposes.
+fn save_zoom_preference_to_path(zoom_level: f64, file_path: PathBuf) -> Result<(), String> {
+    // Validate zoom level is finite
+    if !zoom_level.is_finite() {
+        return Err(format!(
+            "Invalid zoom level: {}. Must be a finite number between {} and {}",
+            zoom_level, MIN_ZOOM, MAX_ZOOM
+        ));
+    }
+
+    // Clamp to supported range to ensure consistency
+    let validated_zoom = zoom_level.clamp(MIN_ZOOM, MAX_ZOOM);
+
+    let json_content = serde_json::json!({ "zoom_level": validated_zoom });
+    let json_str = serde_json::to_string_pretty(&json_content)
+        .map_err(|e| format!("Failed to serialize zoom preference: {}", e))?;
+
+    fs::write(&file_path, json_str)
+        .map_err(|e| format!("Failed to write zoom preference file: {}", e))?;
+
+    Ok(())
+}
+
+/// Internal helper: Load zoom preference from a file path
+///
+/// This function is extracted for testing purposes.
+fn load_zoom_preference_from_path(file_path: PathBuf) -> Result<f64, String> {
+    if file_path.exists() {
+        let file_content = fs::read_to_string(&file_path)
+            .map_err(|e| format!("Failed to read zoom preference file: {}", e))?;
+
+        let json: serde_json::Value = serde_json::from_str(&file_content)
+            .map_err(|e| format!("Failed to parse zoom preference: {}", e))?;
+
+        let zoom_level = json
+            .get("zoom_level")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(1.0);
+
+        // Clamp to supported range; log warning if clamping occurs
+        let zoom_level = if (MIN_ZOOM..=MAX_ZOOM).contains(&zoom_level) {
+            zoom_level
+        } else {
+            #[cfg(debug_assertions)]
+            eprintln!(
+                "Warning: Stored zoom level {} is out of range [{}, {}], resetting to 1.0",
+                zoom_level, MIN_ZOOM, MAX_ZOOM
+            );
+            1.0
+        };
+
+        Ok(zoom_level)
+    } else {
+        // Return 1.0 (100% zoom) if file doesn't exist
+        Ok(1.0)
+    }
+}
+
+/// Save user's zoom level preference.
+///
+/// # Arguments
+/// * `zoom_level` - Zoom level as a floating point number (e.g., 1.0 for 100%)
+/// * `app` - Tauri app handle for accessing app data directory
+///
+/// # Errors
+/// Returns an error if preference cannot be saved.
+#[tauri::command]
+fn save_zoom_preference(zoom_level: f64, app: tauri::AppHandle) -> Result<(), String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+    let file_path = data_dir.join("zoom_level.json");
+    save_zoom_preference_to_path(zoom_level, file_path)
+}
+
+/// Load user's zoom level preference.
+///
+/// # Arguments
+/// * `app` - Tauri app handle for accessing app data directory
+///
+/// # Returns
+/// Zoom level as a floating point number. Defaults to 1.0 (100%) if not set.
+///
+/// # Errors
+/// Returns an error if preference file cannot be read.
+#[tauri::command]
+fn load_zoom_preference(app: tauri::AppHandle) -> Result<f64, String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+    let file_path = data_dir.join("zoom_level.json");
+    load_zoom_preference_from_path(file_path)
+}
+
 fn main() {
     // Only run the Tauri app if we're not in test mode
     #[cfg(not(test))]
@@ -322,7 +448,10 @@ fn main() {
                 save_calendar_events,
                 load_calendar_events,
                 save_dark_mode_preference,
-                load_dark_mode_preference
+                load_dark_mode_preference,
+                save_zoom_preference,
+                load_zoom_preference,
+                get_zoom_limits
             ])
             .run(tauri::generate_context!())
             .expect("error while running tauri application");
@@ -633,5 +762,100 @@ mod tests {
         assert_eq!(final_events.len(), 2);
         assert!(final_events.contains_key("2024-01-15"));
         assert!(final_events.contains_key("2024-01-16"));
+    }
+
+    #[test]
+    fn test_save_and_load_zoom_preference() {
+        let temp_dir = setup_test_dir();
+        let file_path = temp_dir.path().join("zoom_level.json");
+
+        // Test saving zoom level using the internal helper
+        let zoom_level = 1.5;
+        save_zoom_preference_to_path(zoom_level, file_path.clone()).unwrap();
+
+        // Test loading zoom level using the internal helper
+        let loaded_zoom = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded_zoom, zoom_level);
+    }
+
+    #[test]
+    fn test_zoom_preference_default_value() {
+        let temp_dir = setup_test_dir();
+        let file_path = temp_dir.path().join("zoom_level.json");
+
+        // File doesn't exist, should default to 1.0
+        assert!(!file_path.exists());
+
+        // Use the internal helper to load zoom preference
+        let default_zoom = load_zoom_preference_from_path(file_path).unwrap();
+        assert_eq!(default_zoom, 1.0);
+    }
+
+    #[test]
+    fn test_zoom_preference_boundary_values() {
+        let temp_dir = setup_test_dir();
+        let file_path = temp_dir.path().join("zoom_level.json");
+
+        // Test minimum zoom (0.5)
+        save_zoom_preference_to_path(0.5, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded, 0.5);
+
+        // Test maximum zoom (3.0)
+        save_zoom_preference_to_path(3.0, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded, 3.0);
+
+        // Test normal zoom (1.0)
+        save_zoom_preference_to_path(1.0, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path).unwrap();
+        assert_eq!(loaded, 1.0);
+    }
+
+    #[test]
+    fn test_zoom_preference_validation() {
+        let temp_dir = setup_test_dir();
+        let file_path = temp_dir.path().join("zoom_level.json");
+
+        // Test invalid values (NaN, infinity) are rejected
+        assert!(save_zoom_preference_to_path(f64::NAN, file_path.clone()).is_err());
+        assert!(save_zoom_preference_to_path(f64::INFINITY, file_path.clone()).is_err());
+        assert!(save_zoom_preference_to_path(f64::NEG_INFINITY, file_path.clone()).is_err());
+
+        // Test out-of-range values are clamped
+        save_zoom_preference_to_path(10.0, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded, 3.0); // Clamped to MAX_ZOOM
+
+        save_zoom_preference_to_path(-1.0, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded, 0.5); // Clamped to MIN_ZOOM
+
+        save_zoom_preference_to_path(0.4, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded, 0.5); // Clamped to MIN_ZOOM
+
+        save_zoom_preference_to_path(3.1, file_path.clone()).unwrap();
+        let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+        assert_eq!(loaded, 3.0); // Clamped to MAX_ZOOM
+
+        // Test edge cases at boundaries work correctly
+        assert!(save_zoom_preference_to_path(0.5, file_path.clone()).is_ok());
+        assert!(save_zoom_preference_to_path(3.0, file_path).is_ok());
+    }
+
+    #[test]
+    fn test_zoom_preference_persistence() {
+        let temp_dir = setup_test_dir();
+        let file_path = temp_dir.path().join("zoom_level.json");
+
+        // Save zoom level multiple times using the internal helper
+        for zoom in [0.5, 0.8, 1.0, 1.5, 2.0, 3.0] {
+            save_zoom_preference_to_path(zoom, file_path.clone()).unwrap();
+
+            // Verify it was saved correctly
+            let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
+            assert_eq!(loaded, zoom);
+        }
     }
 }
