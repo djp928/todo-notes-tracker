@@ -102,12 +102,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add src-tauri/tauri.conf.json src-tauri/Cargo.toml ui/index.html
-          git commit -m "🔖 RELEASE: Bump version to v${{ steps.version.outputs.new-version }}
-
-Version bump: ${{ steps.version.outputs.current-version }} → ${{ steps.version.outputs.new-version }}
-Type: ${{ github.event.inputs.version_type }}${{ github.event.inputs.custom_version && ' (custom)' || '' }}
-
-This version bump will trigger an automated release when merged to main."
+          git commit -m "chore(release): bump version to v${{ steps.version.outputs.new-version }}
+          
+          Version bump: ${{ steps.version.outputs.current-version }} → ${{ steps.version.outputs.new-version }}
+          Type: ${{ github.event.inputs.version_type }}${{ github.event.inputs.custom_version && ' (custom)' || '' }}
+          
+          This version bump will trigger an automated release when merged to main."
           git push origin ${{ github.ref_name }}
 
       - name: Create Pull Request (if not on main)
@@ -115,8 +115,8 @@ This version bump will trigger an automated release when merged to main."
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "🔖 RELEASE: Bump version to v${{ steps.version.outputs.new-version }}"
-          title: "🔖 Release v${{ steps.version.outputs.new-version }}"
+          commit-message: "chore(release): bump version to v${{ steps.version.outputs.new-version }}"
+          title: "chore(release): bump version to v${{ steps.version.outputs.new-version }}"
           body: |
             ## Version Bump: ${{ steps.version.outputs.current-version }} → ${{ steps.version.outputs.new-version }}
             
