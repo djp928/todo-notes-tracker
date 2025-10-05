@@ -15,6 +15,13 @@ use uuid::Uuid;
 const MIN_ZOOM: f64 = 0.5;
 const MAX_ZOOM: f64 = 3.0;
 
+/// Zoom limits structure for exposing to frontend
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct ZoomLimits {
+    min_zoom: f64,
+    max_zoom: f64,
+}
+
 /// Represents a single todo item with bullet journal semantics
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct TodoItem {
@@ -310,6 +317,21 @@ fn load_dark_mode_preference(app: tauri::AppHandle) -> Result<bool, String> {
     }
 }
 
+/// Get zoom limits for the frontend.
+///
+/// This ensures the frontend and backend always use the same zoom range,
+/// preventing potential mismatches.
+///
+/// # Returns
+/// ZoomLimits structure with min and max zoom values.
+#[tauri::command]
+fn get_zoom_limits() -> ZoomLimits {
+    ZoomLimits {
+        min_zoom: MIN_ZOOM,
+        max_zoom: MAX_ZOOM,
+    }
+}
+
 /// Internal helper: Save zoom preference to a file path
 ///
 /// This function is extracted for testing purposes.
@@ -428,7 +450,8 @@ fn main() {
                 save_dark_mode_preference,
                 load_dark_mode_preference,
                 save_zoom_preference,
-                load_zoom_preference
+                load_zoom_preference,
+                get_zoom_limits
             ])
             .run(tauri::generate_context!())
             .expect("error while running tauri application");

@@ -1174,7 +1174,6 @@ function zoomIn() {
         zoomLevel = Math.min(maxZoom, zoomLevel + zoomStep);
         applyZoom();
         debouncedSaveZoom();
-    } else {
     }
 }
 
@@ -1183,7 +1182,6 @@ function zoomOut() {
         zoomLevel = Math.max(minZoom, zoomLevel - zoomStep);
         applyZoom();
         debouncedSaveZoom();
-    } else {
     }
 }
 
@@ -1314,7 +1312,7 @@ async function loadZoomPreference() {
         zoomLevel = await window.invoke('load_zoom_preference');
         
         // Validate and clamp zoom level to supported range using defined constants
-        if (isNaN(zoomLevel) || zoomLevel < minZoom || zoomLevel > maxZoom) {
+        if (Number.isNaN(zoomLevel) || zoomLevel < minZoom || zoomLevel > maxZoom) {
             console.warn('Invalid zoom level loaded:', zoomLevel, '- resetting to 1.0');
             zoomLevel = 1.0;
         }
@@ -1326,6 +1324,8 @@ async function loadZoomPreference() {
         console.error('Failed to load zoom preference:', error);
         // Default to 100% zoom if loading fails
         zoomLevel = 1.0;
+        // Update cache to prevent visual flash on next startup
+        localStorage.setItem('zoomLevel', zoomLevel.toString());
         applyZoom();
     }
 }
