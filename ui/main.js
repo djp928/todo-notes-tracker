@@ -1252,6 +1252,10 @@ function applyDarkMode() {
 
 async function saveDarkModePreference() {
     try {
+        // Cache in localStorage for instant loading on next startup
+        localStorage.setItem('darkMode', darkMode.toString());
+        
+        // Save to backend for persistence across devices/reinstalls
         await window.invoke('save_dark_mode_preference', {
             darkMode: darkMode
         });
@@ -1263,6 +1267,8 @@ async function saveDarkModePreference() {
 async function loadDarkModePreference() {
     try {
         darkMode = await window.invoke('load_dark_mode_preference');
+        // Update localStorage cache to stay in sync
+        localStorage.setItem('darkMode', darkMode.toString());
         applyDarkMode();
     } catch (error) {
         console.error('Failed to load dark mode preference:', error);
@@ -1274,6 +1280,10 @@ async function loadDarkModePreference() {
 
 async function saveZoomPreference() {
     try {
+        // Cache in localStorage for instant loading on next startup
+        localStorage.setItem('zoomLevel', zoomLevel.toString());
+        
+        // Save to backend for persistence across devices/reinstalls
         await window.invoke('save_zoom_preference', {
             zoomLevel: zoomLevel
         });
@@ -1285,6 +1295,8 @@ async function saveZoomPreference() {
 async function loadZoomPreference() {
     try {
         zoomLevel = await window.invoke('load_zoom_preference');
+        // Update localStorage cache to stay in sync
+        localStorage.setItem('zoomLevel', zoomLevel.toString());
         applyZoom();
     } catch (error) {
         console.error('Failed to load zoom preference:', error);

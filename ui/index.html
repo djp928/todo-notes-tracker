@@ -8,32 +8,28 @@
     
     <!-- Load preferences immediately to prevent flash -->
     <script>
-        // This script runs synchronously before body renders to prevent FOUC (Flash of Unstyled Content)
-        (async function() {
-            try {
-                // Wait for Tauri to be ready
-                if (window.__TAURI__) {
-                    const { invoke } = window.__TAURI__.core;
-                    
-                    // Load preferences in parallel
-                    const [darkMode, zoomLevel] = await Promise.all([
-                        invoke('load_dark_mode_preference').catch(() => false),
-                        invoke('load_zoom_preference').catch(() => 1.0)
-                    ]);
-                    
-                    // Apply dark mode immediately
-                    if (darkMode) {
-                        document.documentElement.classList.add('dark-mode');
-                    }
-                    
-                    // Apply zoom immediately
-                    document.documentElement.style.setProperty('--zoom-scale', zoomLevel);
-                }
-            } catch (error) {
-                console.error('Failed to load initial preferences:', error);
-                // Continue with defaults - no flash since we haven't rendered yet
+        // This script runs SYNCHRONOUSLY before body renders to prevent FOUC
+        // Read preferences from localStorage (instant, synchronous)
+        try {
+            const cachedDarkMode = localStorage.getItem('darkMode');
+            const cachedZoomLevel = localStorage.getItem('zoomLevel');
+            
+            // Apply dark mode immediately if cached
+            if (cachedDarkMode === 'true') {
+                document.documentElement.classList.add('dark-mode');
             }
-        })();
+            
+            // Apply zoom immediately if cached
+            if (cachedZoomLevel) {
+                const zoom = parseFloat(cachedZoomLevel);
+                if (!isNaN(zoom) && zoom >= 0.5 && zoom <= 3.0) {
+                    document.documentElement.style.setProperty('--zoom-scale', zoom);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load cached preferences:', error);
+            // Continue with defaults
+        }
     </script>
 </head>
 <body>
