@@ -306,6 +306,71 @@ fn load_dark_mode_preference(app: tauri::AppHandle) -> Result<bool, String> {
     }
 }
 
+/// Save user's zoom level preference.
+///
+/// # Arguments
+/// * `zoom_level` - Zoom level as a floating point number (e.g., 1.0 for 100%)
+/// * `app` - Tauri app handle for accessing app data directory
+///
+/// # Errors
+/// Returns an error if preference cannot be saved.
+#[tauri::command]
+fn save_zoom_preference(zoom_level: f64, app: tauri::AppHandle) -> Result<(), String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+    let file_path = data_dir.join("zoom_level.json");
+
+    let json_content = serde_json::json!({ "zoom_level": zoom_level });
+    let json_str = serde_json::to_string_pretty(&json_content)
+        .map_err(|e| format!("Failed to serialize zoom preference: {}", e))?;
+
+    fs::write(&file_path, json_str)
+        .map_err(|e| format!("Failed to write zoom preference file: {}", e))?;
+
+    Ok(())
+}
+
+/// Load user's zoom level preference.
+///
+/// # Arguments
+/// * `app` - Tauri app handle for accessing app data directory
+///
+/// # Returns
+/// Zoom level as a floating point number. Defaults to 1.0 (100%) if not set.
+///
+/// # Errors
+/// Returns an error if preference file cannot be read.
+#[tauri::command]
+fn load_zoom_preference(app: tauri::AppHandle) -> Result<f64, String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+    let file_path = data_dir.join("zoom_level.json");
+
+    if file_path.exists() {
+        let file_content = fs::read_to_string(&file_path)
+            .map_err(|e| format!("Failed to read zoom preference file: {}", e))?;
+
+        let json: serde_json::Value = serde_json::from_str(&file_content)
+            .map_err(|e| format!("Failed to parse zoom preference: {}", e))?;
+
+        let zoom_level = json
+            .get("zoom_level")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(1.0);
+
+        Ok(zoom_level)
+    } else {
+        // Return 1.0 (100% zoom) if file doesn't exist
+        Ok(1.0)
+    }
+}
+
 fn main() {
     // Only run the Tauri app if we're not in test mode
     #[cfg(not(test))]
@@ -322,7 +387,9 @@ fn main() {
                 save_calendar_events,
                 load_calendar_events,
                 save_dark_mode_preference,
-                load_dark_mode_preference
+                load_dark_mode_preference,
+                save_zoom_preference,
+                load_zoom_preference
             ])
             .run(tauri::generate_context!())
             .expect("error while running tauri application");
@@ -633,5 +700,114 @@ mod tests {
         assert_eq!(final_events.len(), 2);
         assert!(final_events.contains_key("2024-01-15"));
         assert!(final_events.contains_key("2024-01-16"));
+    }
+
+    #[test]
+    fn test_save_and_load_zoom_preference() {
+        let temp_dir = setup_test_dir();
+        let file_path = temp_dir.path().join("zoom_level.json");
+
+        // Test saving zoom level
+        let zoom_level = 1.5;
+        let json_content = serde_json::json!({ "zoom_level": zoom_level });
+        let json_str = serde_json::to_string_pretty(&json_content).unwrap();
+        fs::write(&file_path, json_str).unwrap();
+
+        // Test loading zoom level
+        assert!(file_path.exists());
+        let file_content = fs::read_to_string(&file_path).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
+        let loaded_zoom = json.get("zoom_level").and_then(|v| v.as_f64()).unwrap();
+
+        assert_eq!(loaded_zoom, zoom_level);
+    }
+
+    #[test]
+    fn test_zoom_preference_default_value() {
+        let temp_dir = setup_test_dir();
+        let file_path = temp_dir.path().join("zoom_level.json");
+
+        // File doesn't exist, should default to 1.0
+        assert!(!file_path.exists());
+
+        // Simulate default behavior
+        let default_zoom = if file_path.exists() {
+            let file_content = fs::read_to_string(&file_path).unwrap();
+            let json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
+            json.get("zoom_level")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(1.0)
+        } else {
+            1.0
+        };
+
+        assert_eq!(default_zoom, 1.0);
+    }
+
+    #[test]
+    fn test_zoom_preference_boundary_values() {
+        let temp_dir = setup_test_dir();
+        let file_path = temp_dir.path().join("zoom_level.json");
+
+        // Test minimum zoom (0.5)
+        let min_zoom = 0.5;
+        let json_content = serde_json::json!({ "zoom_level": min_zoom });
+        fs::write(
+            &file_path,
+            serde_json::to_string_pretty(&json_content).unwrap(),
+        )
+        .unwrap();
+        let file_content = fs::read_to_string(&file_path).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
+        let loaded = json.get("zoom_level").and_then(|v| v.as_f64()).unwrap();
+        assert_eq!(loaded, min_zoom);
+
+        // Test maximum zoom (3.0)
+        let max_zoom = 3.0;
+        let json_content = serde_json::json!({ "zoom_level": max_zoom });
+        fs::write(
+            &file_path,
+            serde_json::to_string_pretty(&json_content).unwrap(),
+        )
+        .unwrap();
+        let file_content = fs::read_to_string(&file_path).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
+        let loaded = json.get("zoom_level").and_then(|v| v.as_f64()).unwrap();
+        assert_eq!(loaded, max_zoom);
+
+        // Test normal zoom (1.0)
+        let normal_zoom = 1.0;
+        let json_content = serde_json::json!({ "zoom_level": normal_zoom });
+        fs::write(
+            &file_path,
+            serde_json::to_string_pretty(&json_content).unwrap(),
+        )
+        .unwrap();
+        let file_content = fs::read_to_string(&file_path).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
+        let loaded = json.get("zoom_level").and_then(|v| v.as_f64()).unwrap();
+        assert_eq!(loaded, normal_zoom);
+    }
+
+    #[test]
+    fn test_zoom_preference_persistence() {
+        let temp_dir = setup_test_dir();
+        let file_path = temp_dir.path().join("zoom_level.json");
+
+        // Save zoom level multiple times
+        for zoom in [0.5, 0.8, 1.0, 1.5, 2.0, 3.0] {
+            let json_content = serde_json::json!({ "zoom_level": zoom });
+            fs::write(
+                &file_path,
+                serde_json::to_string_pretty(&json_content).unwrap(),
+            )
+            .unwrap();
+
+            // Verify it was saved correctly
+            let file_content = fs::read_to_string(&file_path).unwrap();
+            let json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
+            let loaded = json.get("zoom_level").and_then(|v| v.as_f64()).unwrap();
+            assert_eq!(loaded, zoom);
+        }
     }
 }

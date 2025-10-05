@@ -125,6 +125,9 @@ async function initApp() {
         // Load dark mode preference BEFORE setting up event listeners to avoid race condition
         await loadDarkModePreference();
         
+        // Load zoom preference
+        await loadZoomPreference();
+        
         // Load today's data
         await loadDayData(currentDate);
         
@@ -137,7 +140,7 @@ async function initApp() {
         // Initialize calendar
         updateCalendar();
         
-        // Initialize zoom level
+        // Initialize zoom level (in case preference loading failed)
         applyZoom();
         
     } catch (error) {
@@ -1169,6 +1172,7 @@ function zoomIn() {
     if (zoomLevel < maxZoom) {
         zoomLevel = Math.min(maxZoom, zoomLevel + zoomStep);
         applyZoom();
+        saveZoomPreference();
     } else {
     }
 }
@@ -1177,6 +1181,7 @@ function zoomOut() {
     if (zoomLevel > minZoom) {
         zoomLevel = Math.max(minZoom, zoomLevel - zoomStep);
         applyZoom();
+        saveZoomPreference();
     } else {
     }
 }
@@ -1184,6 +1189,7 @@ function zoomOut() {
 function zoomReset() {
     zoomLevel = 1.0;
     applyZoom();
+    saveZoomPreference();
 }
 
 function applyZoom() {
@@ -1261,6 +1267,28 @@ async function loadDarkModePreference() {
         // Default to light mode if loading fails
         darkMode = false;
         applyDarkMode();
+    }
+}
+
+async function saveZoomPreference() {
+    try {
+        await window.invoke('save_zoom_preference', {
+            zoom_level: zoomLevel
+        });
+    } catch (error) {
+        console.error('Failed to save zoom preference:', error);
+    }
+}
+
+async function loadZoomPreference() {
+    try {
+        zoomLevel = await window.invoke('load_zoom_preference');
+        applyZoom();
+    } catch (error) {
+        console.error('Failed to load zoom preference:', error);
+        // Default to 100% zoom if loading fails
+        zoomLevel = 1.0;
+        applyZoom();
     }
 }
 
