@@ -21,26 +21,42 @@ jobs:
     steps:
         - uses: actions/checkout@v4
         
+        - name: Set up cache paths
+          run: |
+            echo "CARGO_HOME=/github/home/.cargo" >> $GITHUB_ENV
+            echo "CARGO_TARGET_DIR=/github/home/target" >> $GITHUB_ENV
+            mkdir -p /github/home/.cargo
+            mkdir -p /github/home/target
+        
         - name: Cache cargo registry
           uses: actions/cache@v3
           with:
-            path: ~/.cargo/registry
+            path: /github/home/.cargo/registry
             key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-cargo-registry-
             
-        - name: Add Rust format
-          run: rustup component add rustfmt
-
         - name: Cache cargo index
           uses: actions/cache@v3
           with:
-            path: ~/.cargo/git
+            path: /github/home/.cargo/git
             key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-cargo-index-
             
         - name: Cache cargo build
           uses: actions/cache@v3
           with:
             path: src-tauri/target
             key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-cargo-build-target-
+            
+        - name: Add Rust format
+          run: rustup component add rustfmt
+
+        - name: Add clippy
+          run: rustup component add clippy
 
         - name: Run Rust tests
           working-directory: src-tauri
@@ -105,14 +121,23 @@ jobs:
     steps:
         - uses: actions/checkout@v4
         
+        - name: Set up cache paths
+          run: |
+            echo "CARGO_HOME=/github/home/.cargo" >> $GITHUB_ENV
+            echo "CARGO_TARGET_DIR=/github/home/target" >> $GITHUB_ENV
+            mkdir -p /github/home/.cargo
+            mkdir -p /github/home/target
+        
         - name: Cache cargo
           uses: actions/cache@v3
           with:
             path: |
-              ~/.cargo/registry
-              ~/.cargo/git
+              /github/home/.cargo/registry
+              /github/home/.cargo/git
               src-tauri/target
-            key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-cargo-build-
             
         - name: Build Tauri app
           working-directory: src-tauri
