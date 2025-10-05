@@ -316,6 +316,17 @@ fn load_dark_mode_preference(app: tauri::AppHandle) -> Result<bool, String> {
 /// Returns an error if preference cannot be saved.
 #[tauri::command]
 fn save_zoom_preference(zoom_level: f64, app: tauri::AppHandle) -> Result<(), String> {
+    // Validate and clamp zoom level before saving to ensure consistency
+    let zoom_level = if zoom_level.is_finite() && (0.5..=3.0).contains(&zoom_level) {
+        zoom_level
+    } else {
+        // Reject invalid values with an error
+        return Err(format!(
+            "Invalid zoom level: {}. Must be between 0.5 and 3.0",
+            zoom_level
+        ));
+    };
+
     let data_dir = app
         .path()
         .app_data_dir()
