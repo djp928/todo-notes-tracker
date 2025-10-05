@@ -17,40 +17,15 @@ jobs:
     name: Test Rust Backend
     runs-on: ubuntu-latest
     container:
-        image: ivangabriele/tauri:debian-bookworm-22    
+        image: ivangabriele/tauri:debian-bookworm-22
     steps:
         - uses: actions/checkout@v4
         
-        - name: Set up cache paths
-          run: |
-            echo "CARGO_HOME=/github/home/.cargo" >> $GITHUB_ENV
-            echo "CARGO_TARGET_DIR=/github/home/target" >> $GITHUB_ENV
-            mkdir -p /github/home/.cargo
-            mkdir -p /github/home/target
-        
-        - name: Cache cargo registry
-          uses: actions/cache@v3
+        - name: Rust Cache
+          uses: Swatinem/rust-cache@v2
           with:
-            path: /github/home/.cargo/registry
-            key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-            restore-keys: |
-              ${{ runner.os }}-cargo-registry-
-            
-        - name: Cache cargo index
-          uses: actions/cache@v3
-          with:
-            path: /github/home/.cargo/git
-            key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-            restore-keys: |
-              ${{ runner.os }}-cargo-index-
-            
-        - name: Cache cargo build
-          uses: actions/cache@v3
-          with:
-            path: src-tauri/target
-            key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-            restore-keys: |
-              ${{ runner.os }}-cargo-build-target-
+            workspaces: "src-tauri -> target"
+            shared-key: "rust-cache"
             
         - name: Add Rust format
           run: rustup component add rustfmt
@@ -121,23 +96,11 @@ jobs:
     steps:
         - uses: actions/checkout@v4
         
-        - name: Set up cache paths
-          run: |
-            echo "CARGO_HOME=/github/home/.cargo" >> $GITHUB_ENV
-            echo "CARGO_TARGET_DIR=/github/home/target" >> $GITHUB_ENV
-            mkdir -p /github/home/.cargo
-            mkdir -p /github/home/target
-        
-        - name: Cache cargo
-          uses: actions/cache@v3
+        - name: Rust Cache
+          uses: Swatinem/rust-cache@v2
           with:
-            path: |
-              /github/home/.cargo/registry
-              /github/home/.cargo/git
-              src-tauri/target
-            key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
-            restore-keys: |
-              ${{ runner.os }}-cargo-build-
+            workspaces: "src-tauri -> target"
+            shared-key: "rust-cache"
             
         - name: Build Tauri app
           working-directory: src-tauri
