@@ -1,7 +1,9 @@
 name: 'Release'
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Tests"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -23,6 +25,10 @@ jobs:
   # Job 1: Determine if a release is needed and calculate version
   version:
     runs-on: ubuntu-latest
+    # Only run if tests passed OR if manually triggered
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      github.event.workflow_run.conclusion == 'success'
     outputs:
       should-release: ${{ steps.version-check.outputs.should-release }}
       new-version: ${{ steps.version-check.outputs.new-version }}
