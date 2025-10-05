@@ -11,6 +11,10 @@ use std::path::PathBuf;
 use tauri::{Emitter, Manager, Window};
 use uuid::Uuid;
 
+// Zoom level constraints - shared across save/load to ensure consistency
+const MIN_ZOOM: f64 = 0.5;
+const MAX_ZOOM: f64 = 3.0;
+
 /// Represents a single todo item with bullet journal semantics
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct TodoItem {
@@ -311,13 +315,13 @@ fn load_dark_mode_preference(app: tauri::AppHandle) -> Result<bool, String> {
 /// This function is extracted for testing purposes.
 fn save_zoom_preference_to_path(zoom_level: f64, file_path: PathBuf) -> Result<(), String> {
     // Validate and clamp zoom level before saving to ensure consistency
-    let zoom_level = if zoom_level.is_finite() && (0.5..=3.0).contains(&zoom_level) {
+    let zoom_level = if zoom_level.is_finite() && (MIN_ZOOM..=MAX_ZOOM).contains(&zoom_level) {
         zoom_level
     } else {
         // Reject invalid values with an error
         return Err(format!(
-            "Invalid zoom level: {}. Must be between 0.5 and 3.0",
-            zoom_level
+            "Invalid zoom level: {}. Must be between {} and {}",
+            zoom_level, MIN_ZOOM, MAX_ZOOM
         ));
     };
 
@@ -347,10 +351,15 @@ fn load_zoom_preference_from_path(file_path: PathBuf) -> Result<f64, String> {
             .and_then(|v| v.as_f64())
             .unwrap_or(1.0);
 
-        // Clamp to supported range [0.5, 3.0]; fall back to 1.0 if out of range
-        let zoom_level = if (0.5..=3.0).contains(&zoom_level) {
+        // Clamp to supported range; log warning if clamping occurs
+        let zoom_level = if (MIN_ZOOM..=MAX_ZOOM).contains(&zoom_level) {
             zoom_level
         } else {
+            #[cfg(debug_assertions)]
+            eprintln!(
+                "Warning: Stored zoom level {} is out of range [{}, {}], resetting to 1.0",
+                zoom_level, MIN_ZOOM, MAX_ZOOM
+            );
             1.0
         };
 

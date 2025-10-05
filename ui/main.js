@@ -1190,7 +1190,12 @@ function zoomOut() {
 function zoomReset() {
     zoomLevel = 1.0;
     applyZoom();
-    // Reset should save immediately (no debounce) since it's an explicit action
+    // Clear any pending debounced save to avoid extra write
+    if (zoomSaveTimeout) {
+        clearTimeout(zoomSaveTimeout);
+        zoomSaveTimeout = null;
+    }
+    // Reset should save immediately since it's an explicit action
     saveZoomPreference();
 }
 
@@ -1308,8 +1313,8 @@ async function loadZoomPreference() {
     try {
         zoomLevel = await window.invoke('load_zoom_preference');
         
-        // Validate and clamp zoom level to supported range
-        if (isNaN(zoomLevel) || zoomLevel < 0.5 || zoomLevel > 3.0) {
+        // Validate and clamp zoom level to supported range using defined constants
+        if (isNaN(zoomLevel) || zoomLevel < minZoom || zoomLevel > maxZoom) {
             console.warn('Invalid zoom level loaded:', zoomLevel, '- resetting to 1.0');
             zoomLevel = 1.0;
         }
