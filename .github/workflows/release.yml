@@ -133,16 +133,12 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-${{ matrix.arch }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.arch }}-cargo-
+          workspaces: "src-tauri -> target"
+          shared-key: "release-${{ matrix.arch }}"
+          cache-on-failure: true
 
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version "^2.0" --locked

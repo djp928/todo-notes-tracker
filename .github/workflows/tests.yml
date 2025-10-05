@@ -85,37 +85,3 @@ jobs:
               grep -q "<html" "$file" || (echo "Missing html tag in $file" && exit 1)
               grep -q "</html>" "$file" || (echo "Missing closing html tag in $file" && exit 1)
             done
-
-  build-tauri:
-    name: Build Tauri Application
-    runs-on: ubuntu-latest
-    container:
-        image: ivangabriele/tauri:debian-bookworm-22
-    needs: [test-rust, test-javascript]
-    
-    steps:
-        - uses: actions/checkout@v4
-        
-        - name: Rust Cache
-          uses: Swatinem/rust-cache@v2
-          with:
-            workspaces: "src-tauri -> target"
-            shared-key: "rust-cache"
-            
-        - name: Build Tauri app
-          working-directory: src-tauri
-          env:
-            DISPLAY: ":99"
-            TAURI_SKIP_ICON_GENERATION: "true"
-            TAURI_SKIP_DEVTOOLS_CHECK: "true"
-            CI: "true"
-            GITHUB_ACTIONS: "true"
-          run: |
-            export DISPLAY=:99
-            export TAURI_SKIP_ICON_GENERATION=true
-            export TAURI_SKIP_DEVTOOLS_CHECK=true
-            Xvfb :99 -screen 0 1024x768x24 &
-            sleep 3
-            echo "Building with icon skip enabled..."
-            echo "TAURI_SKIP_ICON_GENERATION=$TAURI_SKIP_ICON_GENERATION"
-            cargo build --release
