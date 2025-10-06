@@ -85,61 +85,7 @@ jobs:
             echo "should-release=false" >> $GITHUB_OUTPUT
           fi
 
-  # Job 2: Build Rust binaries using rust-build action
-  build-binaries:
-    needs: version
-    if: needs.version.outputs.should-release == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: macos-latest
-            target: x86_64-apple-darwin
-          - platform: macos-latest
-            target: aarch64-apple-darwin
-          - platform: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - platform: windows-latest
-            target: x86_64-pc-windows-msvc
-
-    runs-on: ${{ matrix.platform }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Build Rust binary
-        uses: rust-build/rust-build.action@v1.4.5
-        with:
-          RUSTTARGET: ${{ matrix.target }}
-          UPLOAD_MODE: none
-          WORKING_DIR: src-tauri
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Rename and organize binary
-        shell: bash
-        run: |
-          mkdir -p artifacts
-          cd src-tauri/target/${{ matrix.target }}/release
-          
-          if [ -f "todo-notes-tracker.exe" ]; then
-            cp "todo-notes-tracker.exe" ../../../../artifacts/todo-notes-tracker-${{ matrix.target }}.exe
-          elif [ -f "todo-notes-tracker" ]; then
-            cp "todo-notes-tracker" ../../../../artifacts/todo-notes-tracker-${{ matrix.target }}
-            chmod +x ../../../../artifacts/todo-notes-tracker-${{ matrix.target }}
-          fi
-          
-          echo "Generated artifacts:"
-          ls -la ../../../../artifacts/
-
-      - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: binary-${{ matrix.target }}
-          path: artifacts/*
-          retention-days: 30
-
-  # Job 3: Build Tauri bundles (platform-specific installers)
+  # Job 2: Build Tauri bundles (platform-specific installers)
   build-bundles:
     needs: version
     if: needs.version.outputs.should-release == 'true'
@@ -242,9 +188,9 @@ jobs:
           path: artifacts/*
           retention-days: 30
 
-  # Job 4: Create GitHub release with all artifacts
+  # Job 3: Create GitHub release with all artifacts
   create-release:
-    needs: [version, build-binaries, build-bundles]
+    needs: [version, build-bundles]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
