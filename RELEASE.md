@@ -59,6 +59,21 @@ When pushed to main, the release will trigger automatically.
 - Version change detected in `tauri.conf.json`
 - Excludes documentation-only changes
 
+### Workflow Architecture
+
+The release process consists of three parallel job types:
+
+1. **Version Check**: Determines if a release is needed
+2. **Binary Build**: Uses `rust-build/rust-build.action` for efficient Rust compilation
+3. **Bundle Build**: Creates platform-specific installers (DMG, MSI, AppImage, etc.)
+4. **Release Creation**: Combines all artifacts and creates GitHub release
+
+This architecture provides:
+- ⚡ **Faster builds** through parallelization
+- 🔄 **Better caching** with job-specific strategies
+- 🐛 **Easier debugging** with separated concerns
+- 📦 **Flexible artifacts** (raw binaries + installers)
+
 ### Build Matrix
 The workflow builds for all supported platforms in parallel:
 ```yaml
@@ -75,10 +90,18 @@ matrix:
 ```
 
 ### Artifact Generation
-Each platform generates appropriate installers:
+Each release includes both raw binaries and installers:
+
+**Binaries** (from `build-binaries` job):
+- Raw executables for each platform
+- Useful for advanced users who want just the binary
+
+**Installers** (from `build-bundles` job):
 - **macOS**: DMG installer with app bundle
 - **Windows**: MSI installer package
 - **Linux**: AppImage and DEB packages
+
+See [RELEASE_WORKFLOW_IMPROVEMENTS.md](RELEASE_WORKFLOW_IMPROVEMENTS.md) for detailed information about the workflow architecture.
 
 ### Release Notes
 Automatically generated including:
