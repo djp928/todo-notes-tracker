@@ -204,14 +204,13 @@ jobs:
       - name: Build Tauri bundles
         run: |
           cd src-tauri
-          cargo tauri build --target ${{ matrix.target }}
+          # Only build DEB package in container (AppImage creation fails due to FUSE requirements)
+          cargo tauri build --target ${{ matrix.target }} --bundles deb
 
       - name: Prepare bundle artifacts (Linux)
         run: |
           mkdir -p artifacts
-          # Copy AppImage
-          find "src-tauri/target/${{ matrix.target }}/release/bundle/appimage" -name "*.AppImage" -exec cp {} artifacts/ \; 2>/dev/null || true
-          # Copy deb package
+          # Copy deb package (AppImage skipped in container due to FUSE limitations)
           find "src-tauri/target/${{ matrix.target }}/release/bundle/deb" -name "*.deb" -exec cp {} artifacts/ \; 2>/dev/null || true
           echo "Generated artifacts:"
           ls -la artifacts/
