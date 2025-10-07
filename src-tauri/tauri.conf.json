@@ -1,6 +1,6 @@
 {
   "productName": "Todo Notes Tracker",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "identifier": "com.todonotestracker",
   "build": {
     "frontendDist": "../ui"
