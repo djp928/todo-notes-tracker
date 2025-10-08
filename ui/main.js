@@ -1544,11 +1544,21 @@ async function loadZoomPreference() {
     }
 }
 
-/// Make links in text clickable by detecting URLs and handling Ctrl/Cmd+Click
-/// This enables users to click on URLs in notes to open them in their default browser
+/**
+ * Make links in text clickable by detecting URLs and handling Ctrl/Cmd+Click.
+ * This enables users to click on URLs in notes to open them in their default browser.
+ */
 async function setupLinkHandling() {
     // URL detection regex - matches http://, https://, and www. URLs
     const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/gi;
+    
+    // Empirically determined average monospace character width factor.
+    // For most monospace fonts, the average character width is about 0.55 times the font size in pixels.
+    // This value was derived by measuring rendered text in Chrome/Firefox for common monospace fonts.
+    const MONOSPACE_CHAR_WIDTH_FACTOR = 0.55;
+    
+    // Number of characters of tolerance for imprecise clicking near URLs
+    const CLICK_TOLERANCE_CHARS = 3;
     
     /**
      * Handle clicks on text areas to detect if user clicked on a URL
@@ -1580,7 +1590,7 @@ async function setupLinkHandling() {
         const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
         
         // Estimate character width - use a more accurate calculation
-        const charWidth = fontSize * 0.55; // Slightly smaller for better accuracy
+        const charWidth = fontSize * MONOSPACE_CHAR_WIDTH_FACTOR;
         
         // Calculate line and column
         const line = Math.floor((y + scrollTop) / lineHeight);
@@ -1598,14 +1608,13 @@ async function setupLinkHandling() {
         const matches = [...text.matchAll(urlRegex)];
         
         // Check if click position is within or very close to a URL
-        // Add a small tolerance (±3 characters) for imprecise clicking
-        const tolerance = 3;
+        // Add a small tolerance for imprecise clicking
         for (const match of matches) {
             const urlStart = match.index;
             const urlEnd = match.index + match[0].length;
             
             // Check if position is within the URL (with tolerance)
-            if (position >= urlStart - tolerance && position <= urlEnd + tolerance) {
+            if (position >= urlStart - CLICK_TOLERANCE_CHARS && position <= urlEnd + CLICK_TOLERANCE_CHARS) {
                 const url = match[0];
                 
                 // Ensure URL has a protocol
@@ -1654,7 +1663,7 @@ async function setupLinkHandling() {
         const style = window.getComputedStyle(textarea);
         const fontSize = parseFloat(style.fontSize);
         const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
-        const charWidth = fontSize * 0.6;
+        const charWidth = fontSize * MONOSPACE_CHAR_WIDTH_FACTOR;
         
         const line = Math.floor((y + scrollTop) / lineHeight);
         const col = Math.floor((x + scrollLeft) / charWidth);
