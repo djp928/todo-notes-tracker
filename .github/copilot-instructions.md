@@ -421,6 +421,59 @@ Following conventional commits ensures this automation works correctly!
 ### Release Process
 16. **Automated**: Workflow analyzes conventional commits and bumps version automatically
 17. **No Manual Bumping**: Version is auto-updated based on commit message types
+18. **CHANGELOG.md**: Always keep CHANGELOG.md updated with changes
+
+### CHANGELOG.md Maintenance ⚠️ MANDATORY
+
+**Always update CHANGELOG.md when making changes.** This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
+
+**When to Update:**
+- ✅ **Before merging any PR** - Add changes to `[Unreleased]` section
+- ✅ **When adding features** - Document in `### Added`
+- ✅ **When changing behavior** - Document in `### Changed`
+- ✅ **When fixing bugs** - Document in `### Fixed`
+- ✅ **When removing features** - Document in `### Removed`
+- ✅ **When adding security fixes** - Document in `### Security`
+
+**Format:**
+```markdown
+## [Unreleased]
+
+### Added
+- New feature description with brief explanation
+
+### Changed
+- Description of changed behavior
+
+### Fixed
+- Bug fix description
+
+### Removed
+- Removed feature or code description
+```
+
+**Example:**
+```markdown
+## [Unreleased]
+
+### Added
+- Dark mode toggle in settings panel
+- Keyboard shortcut (Ctrl+D) for dark mode
+
+### Fixed
+- Calendar badges not updating after todo completion
+- Memory leak in pomodoro timer
+```
+
+**Tips:**
+- Write from user perspective (what changed for them)
+- Be specific but concise
+- Group related changes together
+- Link to PR numbers when relevant: `(#14)`
+- Use present tense: "Add feature" not "Added feature"
+
+**Release Process:**
+When a release is created, the `[Unreleased]` section becomes the new version section with a date, and a new empty `[Unreleased]` section is added at the top.
 
 ## Testing Requirements ⚠️ MANDATORY
 

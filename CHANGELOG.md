@@ -5,6 +5,162 @@ All notable changes to Todo Notes Tracker will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Comprehensive documentation organization with `docs/` directory
+- Documentation index in `docs/README.md` with links to all guides
+- Pomodoro timer now defaults to 20 minutes (more practical for actual use)
+
+### Changed
+- Moved 15 documentation files from root to `docs/` directory for better organization
+- Pomodoro timer: removed 1-minute option (unlikely to be useful)
+- Error handling now consistently uses custom modal dialogs throughout the app
+- Improved code quality from B+ to A- rating
+
+### Fixed
+- Removed unused `pomodoroTimer` variable
+- Fixed variable hoisting issue: `saveNotesTimeout` now declared at proper scope
+- Added radix parameter to `parseInt()` for parsing safety
+- Fixed undefined `showCustomAlert()` function call (now uses `customAlert()`)
+- Consolidated duplicate keydown event listeners for better performance
+- Fixed test suite references to non-existent `symbol` field in TodoItem
+- Fixed test suite calls to undefined `setupMockDataDir()` helper function
+
+### Removed
+- Dead code removal: 120 lines total
+  - Unused `window.deleteTodo()` function (replaced by inline implementation)
+  - Unused `handlePomodoroComplete()` function (logic moved to `startCountdown()`)
+  - Unused `showNotification()` function (never called in codebase)
+  - Obsolete `ui/test.html` file (superseded by `ui/test-runner.html`)
+- Removed 3 debug `console.log` statements from production code
+- Extracted magic numbers to named constants (`DEFAULT_CALENDAR_WIDTH`, `DEFAULT_NOTES_WIDTH`)
+
+### Documentation
+- `docs/CLEANUP_SUMMARY.md` - Detailed cleanup process documentation
+- `docs/CODE_REVIEW_ISSUES.md` - Comprehensive code review findings (24 issues)
+- `docs/STANDARDS_COMPLIANCE_SUMMARY.md` - Standards violations fixed
+- `docs/POST_REBASE_VERIFICATION.md` - Post-rebase verification checklist
+
+## [1.4.0] - 2025-10-08
+
+### Added
+- Calendar view now shows todo count badges for each day
+- Badge displays completion status (all complete, partial, none)
+- Badge format shows "completed/total" count (e.g., "2/5")
+- Calendar events system replaced with direct todo creation
+- Migration function to convert old calendar events to todos
+
+### Changed
+- Simplified calendar by replacing event system with todo count visualization
+- Calendar input now creates todos directly instead of separate events
+- Improved calendar usability by hiding input boxes until day is clicked
+- Enhanced release changelog to include all commits categorized by type
+
+### Fixed
+- App version now dynamically loaded from backend instead of hardcoded
+
+## [1.3.1] - 2025-10-08
+
+### Fixed
+- Release workflow now only uploads installer packages, not intermediate build files
+- Cleaned up release artifacts for cleaner distribution
+
+## [1.3.0] - 2025-10-08
+
+### Added
+- **Todo item editing** with double-click on any todo
+- **Per-item notes** for detailed task information
+- Edit modal with dedicated text and notes fields
+- Notes indicator (📝) on todos that have notes attached
+- Comprehensive tests for editing and notes functionality
+
+### Changed
+- TodoItem structure now includes `notes` field for per-item details
+- Improved todo item interaction with visual feedback
+
+## [1.2.4] - 2025-10-07
+
+### Fixed
+- Build system now only creates DEB packages for Linux (AppImage requires FUSE)
+- Switched to Debian Bookworm container for future-proof GLIBC compatibility
+- Restored Ubuntu 20.04 compatibility for broader Linux distribution support
+
+## [1.2.1] - 2025-10-07
+
+### Added
+- Attempted integration of rust-build.action for faster builds
+
+### Fixed
+- Removed rust-build.action as Docker container only works on Linux runners
+
+## [1.2.0] - 2025-10-05
+
+### Added
+- **Zoom level persistence** - your preferred zoom level is now saved and restored
+- Zoom preferences sync between localStorage and backend storage
+- `get_zoom_limits()` command for consistent min/max zoom values
+- Comprehensive zoom persistence tests
+
+### Changed
+- Zoom initialization now prevents flash of default preferences
+- Improved CSS selector specificity for zoom controls
+- Refactored zoom code for better testability and maintainability
+
+### Fixed
+- Eliminated flash of default zoom level on startup
+- Fixed zoom limit mismatch between frontend and backend
+- Improved validation of zoom values before saving
+
+## [1.1.2] - 2025-10-05
+
+### Fixed
+- CI/CD improvements for more reliable builds
+- Fixed caching issues in GitHub Actions workflow
+- Added rustfmt to maintain code formatting
+- Only upload DMG files for macOS (not .app directories)
+- Removed paths-ignore to allow workflow to run intelligently
+
+## [1.1.1] - 2025-10-03
+
+### Added
+- **Automatic semantic versioning** based on conventional commits
+- Comprehensive copilot instructions with session learnings
+- Documentation moved to standard `.github/` location
+
+### Changed
+- Enhanced documentation with code quality guidelines
+- Improved conventional commit format documentation
+
+### Fixed
+- Removed excessive debug logging from production code
+- Fixed ARIA label semantics for accessibility (switch role)
+- Resolved Linux GLIBC compatibility issues
+- Made tag creation robust for existing tags
+- Converted PNG icons to proper 8-bit RGBA format for Tauri compatibility
+
+## [1.1.0] - 2025-10-02
+
+### Added
+- **Calendar panel** with collapsible functionality
+- **Calendar event creation** - add events by clicking calendar days
+- **Persistent calendar storage** - events saved to backend
+- **Resizable panels** with drag handles for customized layout
+- Reset panel sizes button to restore defaults
+- Comprehensive tests for calendar functionality
+- Complete icon set for Tauri application
+- Mandatory pre-commit validation checklist
+- Automated release system with GitHub Actions
+
+### Changed
+- Notes panel collapse now properly expands todo panel
+- Calendar events properly display in calendar UI
+- Calendar events create corresponding todo items
+
+### Fixed
+- Release build failures for Windows and macOS resolved
+- Updated Ubuntu dependencies in release workflow for Tauri builds
+
 ## [1.0.0] - 2025-10-01
 
 ### Added
