@@ -168,6 +168,9 @@ async function initApp() {
         // Initialize zoom level (in case preference loading failed)
         applyZoom();
         
+        // Setup clickable links in notes
+        await setupLinkHandling();
+        
     } catch (error) {
         console.error('Failed to initialize app:', error);
         customAlert('Failed to initialize the application. Please try restarting.\n\nError: ' + error.message, '❌ Initialization Error');
@@ -1538,6 +1541,111 @@ async function loadZoomPreference() {
         // Update cache to prevent visual flash on next startup
         localStorage.setItem('zoomLevel', zoomLevel.toString());
         applyZoom();
+    }
+}
+
+/// Make links in text clickable by detecting URLs and handling Ctrl/Cmd+Click
+/// This enables users to click on URLs in notes to open them in their default browser
+async function setupLinkHandling() {
+    // URL detection regex - matches http://, https://, and www. URLs
+    const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/gi;
+    
+    /**
+     * Handle clicks on text areas to detect if user clicked on a URL
+     * @param {MouseEvent} event - The click event
+     * @param {HTMLTextAreaElement} textarea - The textarea element
+     */
+    async function handleTextClick(event, textarea) {
+        // Only handle Ctrl+Click (Windows/Linux) or Cmd+Click (macOS)
+        if (!event.ctrlKey && !event.metaKey) {
+            return;
+        }
+        
+        const text = textarea.value;
+        const position = textarea.selectionStart;
+        
+        // Find all URLs in the text
+        const matches = [...text.matchAll(urlRegex)];
+        
+        // Check if click position is within a URL
+        for (const match of matches) {
+            const urlStart = match.index;
+            const urlEnd = match.index + match[0].length;
+            
+            if (position >= urlStart && position <= urlEnd) {
+                event.preventDefault();
+                const url = match[0];
+                
+                // Ensure URL has a protocol
+                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                
+                try {
+                    // Use Tauri shell plugin to open URL in default browser
+                    await window.__TAURI__.shell.open(fullUrl);
+                } catch (error) {
+                    console.error('Failed to open URL:', error);
+                    customAlert(`Failed to open link: ${error.message}`, '❌ Error');
+                }
+                break;
+            }
+        }
+    }
+    
+    // Add click handlers to both notes textareas
+    notesText.addEventListener('click', (e) => handleTextClick(e, notesText));
+    
+    // Also add handler to the edit todo notes textarea when modal is shown
+    const editTodoNotes = document.getElementById('edit-todo-notes');
+    if (editTodoNotes) {
+        editTodoNotes.addEventListener('click', (e) => handleTextClick(e, editTodoNotes));
+    }
+    
+    // Add visual feedback by changing cursor when hovering over URLs with Ctrl/Cmd
+    function handleTextHover(event, textarea) {
+        if (!event.ctrlKey && !event.metaKey) {
+            textarea.style.cursor = 'text';
+            return;
+        }
+        
+        const text = textarea.value;
+        const rect = textarea.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        // Approximate position in text based on mouse coordinates
+        // This is a simple heuristic - not pixel-perfect but good enough
+        const charWidth = 8; // Approximate character width
+        const lineHeight = 20; // Approximate line height
+        const col = Math.floor(x / charWidth);
+        const row = Math.floor(y / lineHeight);
+        const lines = text.split('\n');
+        
+        let position = 0;
+        for (let i = 0; i < row && i < lines.length; i++) {
+            position += lines[i].length + 1; // +1 for newline
+        }
+        position += Math.min(col, lines[row]?.length || 0);
+        
+        // Check if hovering over a URL
+        const matches = [...text.matchAll(urlRegex)];
+        let overUrl = false;
+        
+        for (const match of matches) {
+            const urlStart = match.index;
+            const urlEnd = match.index + match[0].length;
+            
+            if (position >= urlStart && position <= urlEnd) {
+                overUrl = true;
+                break;
+            }
+        }
+        
+        textarea.style.cursor = overUrl ? 'pointer' : 'text';
+    }
+    
+    notesText.addEventListener('mousemove', (e) => handleTextHover(e, notesText));
+    if (editTodoNotes) {
+        editTodoNotes.addEventListener('mousemove', (e) => handleTextHover(e, editTodoNotes));
     }
 }
 

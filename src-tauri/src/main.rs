@@ -539,6 +539,7 @@ fn main() {
     #[cfg(not(test))]
     {
         tauri::Builder::default()
+            .plugin(tauri_plugin_shell::init())
             .invoke_handler(tauri::generate_handler![
                 get_app_data_dir,
                 load_day_data,
