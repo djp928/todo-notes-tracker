@@ -336,6 +336,18 @@ fn get_zoom_limits() -> ZoomLimits {
     }
 }
 
+/// Get the application version from the package configuration.
+///
+/// This retrieves the version defined in Cargo.toml at compile time,
+/// ensuring the UI always displays the correct version number.
+///
+/// # Returns
+/// A string containing the version number (e.g., "1.3.1")
+#[tauri::command]
+fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
 /// Internal helper: Save zoom preference to a file path
 ///
 /// This function is extracted for testing purposes.
@@ -455,7 +467,8 @@ fn main() {
                 load_dark_mode_preference,
                 save_zoom_preference,
                 load_zoom_preference,
-                get_zoom_limits
+                get_zoom_limits,
+                get_app_version
             ])
             .run(tauri::generate_context!())
             .expect("error while running tauri application");

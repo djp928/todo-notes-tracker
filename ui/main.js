@@ -133,6 +133,9 @@ async function initApp() {
         // Load zoom preference
         await loadZoomPreference();
         
+        // Load and display app version
+        await loadAppVersion();
+        
         // Load today's data
         await loadDayData(currentDate);
         
@@ -1437,6 +1440,29 @@ async function loadZoomLimits() {
     } catch (error) {
         console.error('Failed to load zoom limits, using defaults:', error);
         // Fallback to defaults (already set)
+    }
+}
+
+/**
+ * Load and display the application version from the backend.
+ * 
+ * This fetches the version defined in Cargo.toml at compile time,
+ * ensuring the UI always shows the correct version number.
+ */
+async function loadAppVersion() {
+    try {
+        const version = await window.invoke('get_app_version');
+        const versionEl = document.getElementById('app-version');
+        if (versionEl) {
+            versionEl.textContent = `v${version}`;
+        }
+    } catch (error) {
+        console.error('Failed to load app version:', error);
+        // Keep default "Loading..." or set a fallback
+        const versionEl = document.getElementById('app-version');
+        if (versionEl) {
+            versionEl.textContent = 'v?.?.?';
+        }
     }
 }
 
