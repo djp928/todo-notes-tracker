@@ -7,18 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2025-01-08
+
 ### Added
-- Clickable hyperlinks in notes - Ctrl/Cmd+Click on URLs in notes to open in default browser
+- Clickable hyperlinks in notes - Ctrl/Cmd+Click on URLs to open in default browser
 - Visual feedback when hovering over links with Ctrl/Cmd held (cursor changes to pointer)
 - Support for URLs in both main notes section and todo item notes
 - Automatic URL detection for http://, https://, and www. links
+- Cross-platform URL opening using tauri-plugin-opener
 
-### Added
-- Calendar notes indicator - small 📝 icon displayed on calendar days that have notes
-- Notes tracking in calendar data structure for visual feedback
-
-### Added
-- Comprehensive documentation organization with `docs/` directory
+## [1.5.0] - 2024-01-08
 - Documentation index in `docs/README.md` with links to all guides
 - Pomodoro timer now defaults to 20 minutes (more practical for actual use)
 
