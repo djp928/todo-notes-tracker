@@ -5,6 +5,43 @@ All notable changes to Todo Notes Tracker will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Comprehensive documentation organization with `docs/` directory
+- Documentation index in `docs/README.md` with links to all guides
+- Pomodoro timer now defaults to 20 minutes (more practical for actual use)
+
+### Changed
+- Moved 15 documentation files from root to `docs/` directory for better organization
+- Pomodoro timer: removed 1-minute option (unlikely to be useful)
+- Error handling now consistently uses custom modal dialogs throughout the app
+- Improved code quality from B+ to A- rating
+
+### Fixed
+- Removed unused `pomodoroTimer` variable
+- Fixed variable hoisting issue: `saveNotesTimeout` now declared at proper scope
+- Added radix parameter to `parseInt()` for parsing safety
+- Fixed undefined `showCustomAlert()` function call (now uses `customAlert()`)
+- Consolidated duplicate keydown event listeners for better performance
+- Fixed test suite references to non-existent `symbol` field in TodoItem
+- Fixed test suite calls to undefined `setupMockDataDir()` helper function
+
+### Removed
+- Dead code removal: 120 lines total
+  - Unused `window.deleteTodo()` function (replaced by inline implementation)
+  - Unused `handlePomodoroComplete()` function (logic moved to `startCountdown()`)
+  - Unused `showNotification()` function (never called in codebase)
+  - Obsolete `ui/test.html` file (superseded by `ui/test-runner.html`)
+- Removed 3 debug `console.log` statements from production code
+- Extracted magic numbers to named constants (`DEFAULT_CALENDAR_WIDTH`, `DEFAULT_NOTES_WIDTH`)
+
+### Documentation
+- `docs/CLEANUP_SUMMARY.md` - Detailed cleanup process documentation
+- `docs/CODE_REVIEW_ISSUES.md` - Comprehensive code review findings (24 issues)
+- `docs/STANDARDS_COMPLIANCE_SUMMARY.md` - Standards violations fixed
+- `docs/POST_REBASE_VERIFICATION.md` - Post-rebase verification checklist
+
 ## [1.0.0] - 2025-10-01
 
 ### Added
