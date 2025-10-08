@@ -325,14 +325,16 @@ async function saveDayData() {
             dataDir: dataDir
         });
         
-        // Update calendar todo counts for the current day
+        // Update calendar todo counts for the current day only if changed
         const dateStr = formatDate(currentDate);
         const total = currentDayData.todos ? currentDayData.todos.length : 0;
         const completed = currentDayData.todos ? currentDayData.todos.filter(todo => todo.completed).length : 0;
-        calendarTodoCounts[dateStr] = { total, completed };
-        
-        // Refresh calendar display to show updated badge
-        await updateCalendar();
+        const prevCounts = calendarTodoCounts[dateStr] || { total: null, completed: null };
+        if (prevCounts.total !== total || prevCounts.completed !== completed) {
+            calendarTodoCounts[dateStr] = { total, completed };
+            // Refresh calendar display to show updated badge
+            await updateCalendar();
+        }
     } catch (error) {
         console.error('Failed to save day data:', error);
     }
