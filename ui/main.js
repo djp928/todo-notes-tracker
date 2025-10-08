@@ -140,8 +140,8 @@ async function initApp() {
                 dataDir: dataDir
             });
         } catch (error) {
-            console.error('Migration failed but app will continue to work normally:', error);
-            // Don't block app startup if migration fails
+            // Migration failure is non-fatal, app continues normally
+            // Error details are logged in backend
         }
         
         // Load dark mode preference BEFORE setting up event listeners to avoid race condition
@@ -332,7 +332,7 @@ async function saveDayData() {
         calendarTodoCounts[dateStr] = { total, completed };
         
         // Refresh calendar display to show updated badge
-        updateCalendar();
+        await updateCalendar();
     } catch (error) {
         console.error('Failed to save day data:', error);
     }
