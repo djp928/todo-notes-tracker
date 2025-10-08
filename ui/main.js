@@ -437,6 +437,7 @@ async function addTodo() {
  * - Text editing with validation (prevents empty text)
  * - Multiline notes with whitespace trimming
  * - Keyboard shortcuts: Ctrl+Enter to save, ESC to cancel
+ * - Click outside modal to close (UX enhancement)
  * - Proper event cleanup to prevent memory leaks
  * 
  * @example
@@ -506,15 +507,25 @@ function editTodo(index) {
         }
     };
     
+    // Handle click outside modal to close (UX enhancement)
+    const handleOutsideClick = (e) => {
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+            cleanup();
+        }
+    };
+    
     const cleanup = () => {
         saveBtn.removeEventListener('click', handleSave);
         cancelBtn.removeEventListener('click', handleCancel);
         document.removeEventListener('keydown', handleEsc);
+        modal.removeEventListener('click', handleOutsideClick);
     };
     
     saveBtn.addEventListener('click', handleSave);
     cancelBtn.addEventListener('click', handleCancel);
     document.addEventListener('keydown', handleEsc);
+    modal.addEventListener('click', handleOutsideClick);
 }
 
 // Toggle todo completion
