@@ -45,8 +45,8 @@ let currentDate = new Date();
 let currentDayData = { todos: [], notes: '' };
 let selectedTodo = null;
 let dataDir = '';
-let pomodoroTimer = null;
 let pomodoroInterval = null;
+let saveNotesTimeout = null;
 
 // Calendar state
 let calendarDate = new Date(); // Date for which month is displayed
@@ -63,13 +63,13 @@ const INPUT_BLUR_DELAY = 150;    // ms; allows user to quickly refocus without h
 const INPUT_RESTORE_DELAY = 100; // ms; ensures input is present in DOM before focusing
 
 // Panel resize state
+const DEFAULT_CALENDAR_WIDTH = 320;
+const DEFAULT_NOTES_WIDTH = 300;
 let isResizing = false;
 let currentResizeHandle = null;
 let startX = 0;
-let startCalendarWidth = 320; // Default calendar width
-let startNotesWidth = 300;    // Default notes width
-const defaultCalendarWidth = 320;
-const defaultNotesWidth = 300;
+let startCalendarWidth = DEFAULT_CALENDAR_WIDTH;
+let startNotesWidth = DEFAULT_NOTES_WIDTH;
 
 // Zoom state
 let zoomLevel = 1.0;
@@ -170,7 +170,7 @@ async function initApp() {
         
     } catch (error) {
         console.error('Failed to initialize app:', error);
-        alert('Failed to initialize the application. Error: ' + error.message);
+        customAlert('Failed to initialize the application. Please try restarting.\n\nError: ' + error.message, '❌ Initialization Error');
     }
 }
 
@@ -257,16 +257,17 @@ function setupEventListeners() {
         });
     }
     
-    // Keyboard shortcuts for zoom
-    document.addEventListener('keydown', handleZoomKeyboard);
-    
-    // Calendar input: hide when pressing ESC or clicking outside
+    // Keyboard shortcuts for zoom and calendar ESC handling
     document.addEventListener('keydown', (e) => {
+        // Handle zoom shortcuts
+        handleZoomKeyboard(e);
+        
+        // Handle ESC to close calendar inputs
         if (e.key === 'Escape') {
             const activeDay = document.querySelector('.calendar-day.show-input');
             if (activeDay) {
                 activeDay.classList.remove('show-input');
-                activeInputDate = null; // Clear tracking
+                activeInputDate = null;
             }
         }
     });
@@ -476,7 +477,7 @@ async function addTodo() {
         saveDayData();
     } catch (error) {
         console.error('Failed to add todo:', error);
-        alert('Failed to add todo: ' + error.message);
+        customAlert('Failed to add todo: ' + error.message, '❌ Error');
     }
 }
 
@@ -636,7 +637,7 @@ async function moveTodoToNextDay(index) {
         
     } catch (error) {
         console.error('Failed to move todo to next day:', error);
-        alert('Failed to move todo to next day: ' + error.message);
+        customAlert('Failed to move todo to next day: ' + error.message, '❌ Error');
     }
 }
 
@@ -647,7 +648,6 @@ function saveNotes() {
     clearTimeout(saveNotesTimeout);
     saveNotesTimeout = setTimeout(saveDayData, 1000);
 }
-let saveNotesTimeout;
 
 // Navigate between days
 async function navigateDay(offset) {
@@ -700,7 +700,7 @@ async function startPomodoro() {
         durationInSeconds = 10;
         durationInMinutes = 1; // Use 1 minute for backend (minimum u32), but frontend will use 10 seconds
     } else {
-        durationInMinutes = parseInt(durationValue);
+        durationInMinutes = parseInt(durationValue, 10);
         durationInSeconds = durationInMinutes * 60;
     }
     
@@ -727,7 +727,7 @@ async function startPomodoro() {
     } catch (error) {
         console.error('Failed to start pomodoro:', error);
         pomodoroOverlay.classList.add('hidden');
-        alert('Failed to start pomodoro timer: ' + error.message);
+        customAlert('Failed to start pomodoro timer: ' + error.message, '❌ Error');
     }
 }
 
@@ -753,9 +753,6 @@ function startCountdown(totalSeconds) {
             
             // Hide timer overlay
             pomodoroOverlay.classList.add('hidden');
-            
-            // Visual notifications
-            console.log('\x07\x07\x07'); // Bell characters
             
             // Title flash
             const originalTitle = document.title;
@@ -831,7 +828,7 @@ function toggleNotesPane() {
     } else {
         // When expanding, restore to default or current width
         if (!notesPane.style.width || notesPane.style.width === '40px') {
-            notesPane.style.width = defaultNotesWidth + 'px';
+            notesPane.style.width = DEFAULT_NOTES_WIDTH + 'px';
         }
     }
     
@@ -859,7 +856,7 @@ function toggleCalendarPane() {
     } else {
         // When expanding, restore to default or current width
         if (!calendarPane.style.width || calendarPane.style.width === '40px') {
-            calendarPane.style.width = defaultCalendarWidth + 'px';
+            calendarPane.style.width = DEFAULT_CALENDAR_WIDTH + 'px';
         }
     }
     
@@ -1205,10 +1202,10 @@ function stopResize() {
 function resetPanelSizes() {
     
     if (!calendarPane.classList.contains('collapsed')) {
-        calendarPane.style.width = defaultCalendarWidth + 'px';
+        calendarPane.style.width = DEFAULT_CALENDAR_WIDTH + 'px';
     }
     if (!notesPane.classList.contains('collapsed')) {
-        notesPane.style.width = defaultNotesWidth + 'px';
+        notesPane.style.width = DEFAULT_NOTES_WIDTH + 'px';
     }
     
     // Update calendar display to handle any sizing changes
@@ -1430,7 +1427,6 @@ function applyDarkMode() {
             darkModeToggleBtn.setAttribute('aria-checked', 'false');
         }
     }
-    console.log('Dark mode:', darkMode ? 'enabled' : 'disabled');
 }
 
 async function saveDarkModePreference() {
@@ -1480,7 +1476,6 @@ async function loadZoomLimits() {
         const limits = await window.invoke('get_zoom_limits');
         minZoom = limits.min_zoom;
         maxZoom = limits.max_zoom;
-        console.log('Zoom limits loaded from backend:', minZoom, '-', maxZoom);
     } catch (error) {
         console.error('Failed to load zoom limits, using defaults:', error);
         // Fallback to defaults (already set)
