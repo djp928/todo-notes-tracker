@@ -256,6 +256,119 @@ async fn load_calendar_events(data_dir: String) -> Result<HashMap<String, Vec<St
     }
 }
 
+/// Migrate calendar events to todos (one-time migration).
+///
+/// This function performs a one-time migration of calendar events from the old
+/// calendar_events.json file to the new unified todo system. Each calendar event
+/// is converted to a todo item and added to the appropriate day's data file.
+///
+/// # Arguments
+/// * `data_dir` - Path to the app data directory
+///
+/// # Returns
+/// A success message indicating how many events were migrated, or an error message.
+///
+/// # Migration Process
+/// 1. Checks if calendar_events.json exists
+/// 2. Loads all calendar events
+/// 3. For each date with events:
+///    - Loads existing day data
+///    - Converts each event to a todo item
+///    - Prepends todos to preserve order
+///    - Saves updated day data
+/// 4. Backs up original file as calendar_events.json.backup
+/// 5. Removes original calendar_events.json
+///
+/// # Errors
+/// Returns an error if:
+/// - Date parsing fails
+/// - File operations fail
+/// - JSON serialization/deserialization fails
+#[tauri::command]
+async fn migrate_calendar_events_to_todos(data_dir: String) -> Result<String, String> {
+    let events_file = PathBuf::from(&data_dir).join("calendar_events.json");
+    
+    // Check if calendar_events.json exists
+    if !events_file.exists() {
+        return Ok("No calendar events file found - migration not needed".to_string());
+    }
+    
+    // Load calendar events
+    let file_content = fs::read_to_string(&events_file)
+        .map_err(|e| format!("Failed to read calendar events file: {}", e))?;
+    
+    let events: HashMap<String, Vec<String>> = serde_json::from_str(&file_content)
+        .map_err(|e| format!("Failed to parse calendar events: {}", e))?;
+    
+    if events.is_empty() {
+        // File exists but is empty - still back it up and remove it
+        let backup_file = PathBuf::from(&data_dir).join("calendar_events.json.backup");
+        fs::rename(&events_file, &backup_file)
+            .map_err(|e| format!("Failed to backup empty calendar events file: {}", e))?;
+        return Ok("Calendar events file was empty - backed up and removed".to_string());
+    }
+    
+    let mut migrated_count = 0;
+    let mut migrated_dates = Vec::new();
+    
+    // For each date with events
+    for (date_str, event_list) in events {
+        // Parse date
+        let date = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d")
+            .map_err(|e| format!("Invalid date format in calendar events: {} - {}", date_str, e))?;
+        
+        // Load existing day data
+        let file_path = PathBuf::from(&data_dir).join(format!("{}.json", date.format("%Y-%m-%d")));
+        
+        let mut day_data = if file_path.exists() {
+            let content = fs::read_to_string(&file_path)
+                .map_err(|e| format!("Failed to read day file: {}", e))?;
+            serde_json::from_str(&content)
+                .map_err(|e| format!("Failed to parse day data: {}", e))?
+        } else {
+            DayData {
+                date,
+                todos: Vec::new(),
+                notes: String::new(),
+            }
+        };
+        
+        // Add each event as a todo at the beginning (in reverse order to preserve event order)
+        for event_text in event_list.iter().rev() {
+            let todo = TodoItem {
+                id: Uuid::new_v4().to_string(),
+                text: event_text.clone(),
+                completed: false,
+                created_at: Local::now(),
+                move_to_next_day: false,
+                notes: String::new(),
+            };
+            day_data.todos.insert(0, todo);
+            migrated_count += 1;
+        }
+        
+        // Save updated day data
+        let json_content = serde_json::to_string_pretty(&day_data)
+            .map_err(|e| format!("Failed to serialize day data: {}", e))?;
+        
+        fs::write(&file_path, json_content)
+            .map_err(|e| format!("Failed to write day file: {}", e))?;
+        
+        migrated_dates.push(date_str);
+    }
+    
+    // Backup original file
+    let backup_file = PathBuf::from(&data_dir).join("calendar_events.json.backup");
+    fs::rename(&events_file, &backup_file)
+        .map_err(|e| format!("Failed to backup calendar events file: {}", e))?;
+    
+    Ok(format!(
+        "Successfully migrated {} calendar events from {} days to todos. Backup saved as calendar_events.json.backup",
+        migrated_count,
+        migrated_dates.len()
+    ))
+}
+
 /// Save user's dark mode preference.
 ///
 /// # Arguments
@@ -463,6 +576,7 @@ fn main() {
                 send_notification,
                 save_calendar_events,
                 load_calendar_events,
+                migrate_calendar_events_to_todos,
                 save_dark_mode_preference,
                 load_dark_mode_preference,
                 save_zoom_preference,
@@ -780,6 +894,142 @@ mod tests {
         assert_eq!(final_events.len(), 2);
         assert!(final_events.contains_key("2024-01-15"));
         assert!(final_events.contains_key("2024-01-16"));
+    }
+
+    #[tokio::test]
+    async fn test_migrate_calendar_events_no_file() {
+        let temp_dir = setup_test_dir();
+        let data_dir = temp_dir.path().to_string_lossy().to_string();
+        
+        // No calendar_events.json file exists
+        let result = migrate_calendar_events_to_todos(data_dir).await;
+        
+        assert!(result.is_ok());
+        assert!(result.unwrap().contains("migration not needed"));
+    }
+
+    #[tokio::test]
+    async fn test_migrate_calendar_events_empty_file() {
+        let temp_dir = setup_test_dir();
+        let data_dir = temp_dir.path().to_string_lossy().to_string();
+        
+        // Create empty calendar events file
+        let empty_events: HashMap<String, Vec<String>> = HashMap::new();
+        save_calendar_events(empty_events, data_dir.clone()).await.unwrap();
+        
+        // Run migration
+        let result = migrate_calendar_events_to_todos(data_dir.clone()).await;
+        
+        assert!(result.is_ok());
+        assert!(result.unwrap().contains("empty"));
+        
+        // Verify backup was created
+        let backup_path = temp_dir.path().join("calendar_events.json.backup");
+        assert!(backup_path.exists());
+        
+        // Verify original was removed
+        let original_path = temp_dir.path().join("calendar_events.json");
+        assert!(!original_path.exists());
+    }
+
+    #[tokio::test]
+    async fn test_migrate_calendar_events_to_new_todos() {
+        let temp_dir = setup_test_dir();
+        let data_dir = temp_dir.path().to_string_lossy().to_string();
+        
+        // Create calendar events
+        let mut events = HashMap::new();
+        events.insert("2024-01-15".to_string(), vec![
+            "Meeting at 2pm".to_string(),
+            "Call dentist".to_string(),
+        ]);
+        events.insert("2024-01-16".to_string(), vec![
+            "Submit report".to_string(),
+        ]);
+        
+        save_calendar_events(events, data_dir.clone()).await.unwrap();
+        
+        // Run migration
+        let result = migrate_calendar_events_to_todos(data_dir.clone()).await;
+        
+        assert!(result.is_ok());
+        let message = result.unwrap();
+        assert!(message.contains("3 calendar events")); // Total events
+        assert!(message.contains("2 days")); // Number of days
+        
+        // Verify todos were created for 2024-01-15
+        let day_data = load_day_data("2024-01-15".to_string(), data_dir.clone()).await.unwrap();
+        assert_eq!(day_data.todos.len(), 2);
+        assert_eq!(day_data.todos[0].text, "Meeting at 2pm");
+        assert_eq!(day_data.todos[1].text, "Call dentist");
+        assert!(!day_data.todos[0].completed);
+        assert!(!day_data.todos[1].completed);
+        
+        // Verify todos were created for 2024-01-16
+        let day_data2 = load_day_data("2024-01-16".to_string(), data_dir.clone()).await.unwrap();
+        assert_eq!(day_data2.todos.len(), 1);
+        assert_eq!(day_data2.todos[0].text, "Submit report");
+        
+        // Verify backup was created
+        let backup_path = temp_dir.path().join("calendar_events.json.backup");
+        assert!(backup_path.exists());
+        
+        // Verify original was removed
+        let original_path = temp_dir.path().join("calendar_events.json");
+        assert!(!original_path.exists());
+    }
+
+    #[tokio::test]
+    async fn test_migrate_calendar_events_merge_with_existing_todos() {
+        let temp_dir = setup_test_dir();
+        let data_dir = temp_dir.path().to_string_lossy().to_string();
+        
+        // Create existing todo for 2024-01-15
+        let existing_day = DayData {
+            date: NaiveDate::from_ymd_opt(2024, 1, 15).unwrap(),
+            todos: vec![
+                TodoItem {
+                    id: Uuid::new_v4().to_string(),
+                    text: "Existing todo".to_string(),
+                    completed: true,
+                    created_at: Local::now(),
+                    move_to_next_day: false,
+                    notes: String::new(),
+                }
+            ],
+            notes: "Existing notes".to_string(),
+        };
+        
+        save_day_data(existing_day, data_dir.clone()).await.unwrap();
+        
+        // Create calendar events
+        let mut events = HashMap::new();
+        events.insert("2024-01-15".to_string(), vec![
+            "Calendar event 1".to_string(),
+            "Calendar event 2".to_string(),
+        ]);
+        
+        save_calendar_events(events, data_dir.clone()).await.unwrap();
+        
+        // Run migration
+        let result = migrate_calendar_events_to_todos(data_dir.clone()).await;
+        
+        assert!(result.is_ok());
+        
+        // Verify todos were merged (calendar events prepended)
+        let day_data = load_day_data("2024-01-15".to_string(), data_dir.clone()).await.unwrap();
+        assert_eq!(day_data.todos.len(), 3);
+        
+        // Calendar events should be first (prepended)
+        assert_eq!(day_data.todos[0].text, "Calendar event 1");
+        assert_eq!(day_data.todos[1].text, "Calendar event 2");
+        
+        // Existing todo should be last
+        assert_eq!(day_data.todos[2].text, "Existing todo");
+        assert!(day_data.todos[2].completed); // Preserved completion status
+        
+        // Existing notes should be preserved
+        assert_eq!(day_data.notes, "Existing notes");
     }
 
     #[test]
