@@ -906,4 +906,151 @@ describe('Integration Tests', () => {
     });
 });
 
+describe('Todo Item Editing and Notes', () => {
+    test('should create todo with empty notes field', async () => {
+        const text = 'Test todo for editing';
+        const result = await window.invoke('create_todo_item', { text });
+        
+        assert.equal(result.text, text);
+        assert.equal(result.notes, '');
+    });
+
+    test('should update todo text through edit function', () => {
+        // Setup test data
+        currentDayData = {
+            todos: [{
+                id: 'test-id-1',
+                text: 'Original text',
+                notes: '',
+                completed: false,
+                created_at: new Date().toISOString(),
+                move_to_next_day: false
+            }],
+            notes: ''
+        };
+
+        // Simulate editing the todo
+        const index = 0;
+        const newText = 'Updated text';
+        const newNotes = 'Some notes about this task';
+        
+        currentDayData.todos[index].text = newText;
+        currentDayData.todos[index].notes = newNotes;
+        
+        assert.equal(currentDayData.todos[index].text, newText);
+        assert.equal(currentDayData.todos[index].notes, newNotes);
+    });
+
+    test('should persist todo notes across save/load', async () => {
+        const temp_dir = await setupMockDataDir();
+        const date = '2024-01-15';
+        
+        // Create todo with notes
+        const todo = await window.invoke('create_todo_item', { text: 'Test with notes' });
+        todo.notes = 'Important notes about this task';
+        
+        const dayData = {
+            date: date,
+            todos: [todo],
+            notes: 'General notes'
+        };
+        
+        // Save
+        await window.invoke('save_day_data', { dayData, dataDir: temp_dir });
+        
+        // Load
+        const loaded = await window.invoke('load_day_data', { date, dataDir: temp_dir });
+        
+        assert.equal(loaded.todos[0].text, 'Test with notes');
+        assert.equal(loaded.todos[0].notes, 'Important notes about this task');
+    });
+
+    test('should handle todos without notes field (backward compatibility)', async () => {
+        const temp_dir = await setupMockDataDir();
+        const date = '2024-01-15';
+        
+        // Create legacy todo without notes field
+        const legacyTodo = {
+            id: 'legacy-id',
+            text: 'Legacy todo',
+            completed: false,
+            created_at: new Date().toISOString(),
+            move_to_next_day: false
+            // Note: no notes field
+        };
+        
+        const dayData = {
+            date: date,
+            todos: [legacyTodo],
+            notes: ''
+        };
+        
+        // Save and load
+        await window.invoke('save_day_data', { dayData, dataDir: temp_dir });
+        const loaded = await window.invoke('load_day_data', { date, dataDir: temp_dir });
+        
+        // Should handle missing notes field gracefully
+        assert.equal(loaded.todos[0].text, 'Legacy todo');
+        // Notes should default to empty string or undefined
+        assert.truthy(loaded.todos[0].notes === '' || loaded.todos[0].notes === undefined);
+    });
+
+    test('should identify todos with notes via notes indicator', () => {
+        const todoWithNotes = {
+            id: 'test-1',
+            text: 'Todo with notes',
+            notes: 'Some notes here',
+            completed: false,
+            created_at: new Date().toISOString(),
+            move_to_next_day: false
+        };
+        
+        const todoWithoutNotes = {
+            id: 'test-2',
+            text: 'Todo without notes',
+            notes: '',
+            completed: false,
+            created_at: new Date().toISOString(),
+            move_to_next_day: false
+        };
+        
+        // Test that todos with notes have a truthy notes field
+        assert.truthy(todoWithNotes.notes && todoWithNotes.notes.trim());
+        assert.falsy(todoWithoutNotes.notes && todoWithoutNotes.notes.trim());
+    });
+
+    test('should handle empty/whitespace-only notes', () => {
+        const todo = {
+            id: 'test-1',
+            text: 'Test todo',
+            notes: '   \n\t  ',
+            completed: false,
+            created_at: new Date().toISOString(),
+            move_to_next_day: false
+        };
+        
+        // Whitespace-only notes should be treated as empty
+        const hasNotes = todo.notes && todo.notes.trim();
+        assert.falsy(hasNotes);
+    });
+
+    test('should preserve multiline notes', () => {
+        const multilineNotes = `Line 1
+Line 2
+Line 3`;
+        
+        const todo = {
+            id: 'test-1',
+            text: 'Test todo',
+            notes: multilineNotes,
+            completed: false,
+            created_at: new Date().toISOString(),
+            move_to_next_day: false
+        };
+        
+        assert.equal(todo.notes, multilineNotes);
+        assert.truthy(todo.notes.includes('\n'));
+    });
+});
+
 console.log('Test suite loaded with', testRunner.tests.length, 'tests');

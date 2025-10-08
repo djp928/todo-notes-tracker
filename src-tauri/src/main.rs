@@ -30,6 +30,9 @@ struct TodoItem {
     completed: bool,
     created_at: DateTime<Local>,
     move_to_next_day: bool,
+    /// Notes attached to this specific todo item
+    #[serde(default)]
+    notes: String,
 }
 
 /// Represents all data for a single day
@@ -133,6 +136,7 @@ async fn create_todo_item(text: String) -> Result<TodoItem, String> {
         completed: false,
         created_at: now,
         move_to_next_day: false,
+        notes: String::new(),
     };
 
     Ok(todo)
@@ -481,6 +485,7 @@ mod tests {
         assert!(!todo.move_to_next_day);
         assert!(!todo.id.is_empty());
         assert!(uuid::Uuid::parse_str(&todo.id).is_ok());
+        assert_eq!(todo.notes, ""); // New field should default to empty string
     }
 
     #[tokio::test]
