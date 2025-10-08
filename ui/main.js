@@ -426,7 +426,29 @@ async function addTodo() {
     }
 }
 
-// Edit a todo item
+/**
+ * Opens a modal dialog to edit a todo item's text and notes.
+ * 
+ * @param {number} index - The index of the todo item in the currentDayData.todos array
+ * 
+ * @description
+ * This function displays a modal dialog allowing the user to edit both the todo text
+ * and per-item notes. The modal supports:
+ * - Text editing with validation (prevents empty text)
+ * - Multiline notes with whitespace trimming
+ * - Keyboard shortcuts: Ctrl+Enter to save, ESC to cancel
+ * - Proper event cleanup to prevent memory leaks
+ * 
+ * @example
+ * // Edit the first todo item
+ * editTodo(0);
+ * 
+ * @requires customAlert - For validation error messages
+ * @requires renderTodoList - To update UI after changes
+ * @requires saveDayData - To persist changes to storage
+ * 
+ * @throws {Error} Implicitly if modal elements are not found in DOM
+ */
 function editTodo(index) {
     const todo = currentDayData.todos[index];
     
