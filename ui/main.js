@@ -51,6 +51,7 @@ let pomodoroInterval = null;
 // Calendar state
 let calendarDate = new Date(); // Date for which month is displayed
 let calendarEvents = {}; // Store events by date key (YYYY-MM-DD)
+let activeInputDate = null; // Track which date has active input (YYYY-MM-DD format)
 
 // Panel resize state
 let isResizing = false;
@@ -249,6 +250,7 @@ function setupEventListeners() {
             const activeDay = document.querySelector('.calendar-day.show-input');
             if (activeDay) {
                 activeDay.classList.remove('show-input');
+                activeInputDate = null; // Clear tracking
             }
         }
     });
@@ -261,6 +263,7 @@ function setupEventListeners() {
         if (calendarGrid && !calendarGrid.contains(e.target)) {
             const allDays = document.querySelectorAll('.calendar-day.show-input');
             allDays.forEach(day => day.classList.remove('show-input'));
+            activeInputDate = null; // Clear tracking
         }
     });
     
@@ -951,6 +954,21 @@ function updateCalendar() {
         const dayEl = createCalendarDay(date, today, todayStr, currentDateStr);
         calendarGrid.appendChild(dayEl);
     }
+    
+    // Restore input state if there was an active input before calendar refresh
+    if (activeInputDate) {
+        const targetDay = calendarGrid.querySelector(`[data-date="${activeInputDate}"]`);
+        if (targetDay) {
+            targetDay.classList.add('show-input');
+            // Focus the input after a small delay
+            setTimeout(() => {
+                const input = targetDay.querySelector('.calendar-event-input');
+                if (input) {
+                    input.focus();
+                }
+            }, 100);
+        }
+    }
 }
 
 // Create a calendar day element
@@ -963,6 +981,9 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
     const isCurrentMonth = date.getMonth() === calendarDate.getMonth();
     const isToday = dateStr === todayStr;
     const isSelected = dateStr === currentDateStr;
+    
+    // Store date string as data attribute for easy lookup
+    dayEl.dataset.date = dateStr;
     
     // Add appropriate classes
     if (!isCurrentMonth) {
@@ -1000,6 +1021,7 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
         setTimeout(() => {
             if (document.activeElement !== eventInput) {
                 dayEl.classList.remove('show-input');
+                activeInputDate = null; // Clear tracking
             }
         }, 150); // Increased delay for better reliability
     });
@@ -1040,13 +1062,19 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
             }
         });
         
-        // Toggle show-input class on this day
+        // Check if this day already has input showing
         const hadInput = dayEl.classList.contains('show-input');
-        dayEl.classList.toggle('show-input');
         
-        // If we just showed the input, focus it
-        if (!hadInput) {
-            // Small delay to ensure display:block takes effect before focusing
+        if (hadInput) {
+            // Hide the input
+            dayEl.classList.remove('show-input');
+            activeInputDate = null;
+        } else {
+            // Show the input and track it
+            dayEl.classList.add('show-input');
+            activeInputDate = dateStr;
+            
+            // Focus the input after a small delay
             setTimeout(() => {
                 eventInput.focus();
             }, 50);
