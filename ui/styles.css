@@ -960,6 +960,30 @@ body {
     color: white;
 }
 
+/* Calendar notes indicator */
+.calendar-notes-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 0.75rem;
+    line-height: 1;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.calendar-day:hover .calendar-notes-indicator {
+    opacity: 1;
+}
+
+/* Dark mode adjustments for notes indicator */
+:root.dark-mode .calendar-notes-indicator {
+    opacity: 0.8;
+}
+
+:root.dark-mode .calendar-day:hover .calendar-notes-indicator {
+    opacity: 1;
+}
+
 /* Badge on selected day */
 .calendar-day.selected .calendar-todo-badge {
     background: rgba(255, 255, 255, 0.3);

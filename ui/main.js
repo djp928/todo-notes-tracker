@@ -330,10 +330,11 @@ async function saveDayData() {
         const dateStr = formatDate(currentDate);
         const total = currentDayData.todos ? currentDayData.todos.length : 0;
         const completed = currentDayData.todos ? currentDayData.todos.filter(todo => todo.completed).length : 0;
-        const prevCounts = calendarTodoCounts[dateStr] || { total: null, completed: null };
-        if (prevCounts.total !== total || prevCounts.completed !== completed) {
-            calendarTodoCounts[dateStr] = { total, completed };
-            // Refresh calendar display to show updated badge
+        const hasNotes = currentDayData.notes && currentDayData.notes.trim().length > 0;
+        const prevCounts = calendarTodoCounts[dateStr] || { total: null, completed: null, hasNotes: null };
+        if (prevCounts.total !== total || prevCounts.completed !== completed || prevCounts.hasNotes !== hasNotes) {
+            calendarTodoCounts[dateStr] = { total, completed, hasNotes };
+            // Refresh calendar display to show updated badge and notes indicator
             await updateCalendar();
         }
     } catch (error) {
@@ -1020,6 +1021,15 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
         dayEl.appendChild(badge);
     }
     
+    // Add notes indicator if this day has notes
+    if (todoCount && todoCount.hasNotes) {
+        const notesIndicator = document.createElement('div');
+        notesIndicator.className = 'calendar-notes-indicator';
+        notesIndicator.textContent = '📝';
+        notesIndicator.title = 'This day has notes';
+        dayEl.appendChild(notesIndicator);
+    }
+    
     // Click handler to navigate to this day and show input
     dayEl.addEventListener('click', (e) => {
         // Stop propagation to prevent document click handler from firing
@@ -1139,10 +1149,13 @@ async function loadCalendarTodoCounts() {
             const total = dayData.todos ? dayData.todos.length : 0;
             const completed = dayData.todos ? dayData.todos.filter(todo => todo.completed).length : 0;
             
-            calendarTodoCounts[dateStr] = { total, completed };
+            // Check if day has notes
+            const hasNotes = dayData.notes && dayData.notes.trim().length > 0;
+            
+            calendarTodoCounts[dateStr] = { total, completed, hasNotes };
         }).catch(error => {
-            // If loading fails, assume no todos
-            calendarTodoCounts[dateStr] = { total: 0, completed: 0 };
+            // If loading fails, assume no todos and no notes
+            calendarTodoCounts[dateStr] = { total: 0, completed: 0, hasNotes: false };
         });
         
         loadPromises.push(promise);

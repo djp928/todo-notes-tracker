@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Calendar notes indicator - small 📝 icon displayed on calendar days that have notes
+- Notes tracking in calendar data structure for visual feedback
+
+### Added
 - Comprehensive documentation organization with `docs/` directory
 - Documentation index in `docs/README.md` with links to all guides
 - Pomodoro timer now defaults to 20 minutes (more practical for actual use)
