@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Clickable hyperlinks in notes - Ctrl/Cmd+Click on URLs in notes to open in default browser
+- Visual feedback when hovering over links with Ctrl/Cmd held (cursor changes to pointer)
+- Support for URLs in both main notes section and todo item notes
+- Automatic URL detection for http://, https://, and www. links
+
+### Added
 - Calendar notes indicator - small 📝 icon displayed on calendar days that have notes
 - Notes tracking in calendar data structure for visual feedback
 

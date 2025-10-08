@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use tauri::{Emitter, Manager, Window};
+use tauri_plugin_opener::OpenerExt;
 use uuid::Uuid;
 
 // Zoom level constraints - shared across save/load to ensure consistency
@@ -434,6 +435,27 @@ fn get_app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+/// Open a URL in the default browser
+///
+/// # Arguments
+/// * `url` - The URL to open
+/// * `app` - The Tauri app handle (automatically injected by Tauri)
+///
+/// # Returns
+/// Ok(()) if successful, error message if failed
+///
+/// # Notes
+/// This uses tauri-plugin-opener v2.5.0's OpenerExt trait.
+/// The API is `app.opener().open_url()` which is the correct method for this plugin version.
+#[tauri::command]
+async fn open_url_in_browser(url: String, app: tauri::AppHandle) -> Result<(), String> {
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|e| format!("Failed to open URL: {}", e))?;
+
+    Ok(())
+}
+
 /// Internal helper: Save zoom preference to a file path
 ///
 /// This function is extracted for testing purposes.
@@ -539,6 +561,7 @@ fn main() {
     #[cfg(not(test))]
     {
         tauri::Builder::default()
+            .plugin(tauri_plugin_opener::init())
             .invoke_handler(tauri::generate_handler![
                 get_app_data_dir,
                 load_day_data,
@@ -553,7 +576,8 @@ fn main() {
                 save_zoom_preference,
                 load_zoom_preference,
                 get_zoom_limits,
-                get_app_version
+                get_app_version,
+                open_url_in_browser
             ])
             .run(tauri::generate_context!())
             .expect("error while running tauri application");

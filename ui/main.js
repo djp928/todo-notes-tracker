@@ -168,6 +168,9 @@ async function initApp() {
         // Initialize zoom level (in case preference loading failed)
         applyZoom();
         
+        // Setup clickable links in notes
+        await setupLinkHandling();
+        
     } catch (error) {
         console.error('Failed to initialize app:', error);
         customAlert('Failed to initialize the application. Please try restarting.\n\nError: ' + error.message, '❌ Initialization Error');
@@ -1538,6 +1541,153 @@ async function loadZoomPreference() {
         // Update cache to prevent visual flash on next startup
         localStorage.setItem('zoomLevel', zoomLevel.toString());
         applyZoom();
+    }
+}
+
+/**
+ * Make links in text clickable by detecting URLs and handling Ctrl/Cmd+Click.
+ * This enables users to click on URLs in notes to open them in their default browser.
+ */
+async function setupLinkHandling() {
+    // URL detection regex - matches http://, https://, and www. URLs
+    const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/gi;
+    
+    // Empirically determined average monospace character width factor.
+    // For most monospace fonts, the average character width is about 0.55 times the font size in pixels.
+    // This value was derived by measuring rendered text in Chrome/Firefox for common monospace fonts.
+    // Note: While Canvas measureText() could provide more accuracy, this approximation is sufficient
+    // for the tolerance-based approach and avoids the overhead of canvas operations on every click/hover.
+    const MONOSPACE_CHAR_WIDTH_FACTOR = 0.55;
+    
+    // Number of characters of tolerance for imprecise clicking near URLs
+    const CLICK_TOLERANCE_CHARS = 3;
+    
+    /**
+     * Calculate character position from mouse event coordinates.
+     * Converts click/hover coordinates to approximate character index in textarea.
+     * 
+     * @param {MouseEvent} event - The mouse event
+     * @param {HTMLTextAreaElement} textarea - The textarea element
+     * @returns {number} Approximate character position in the text
+     */
+    function getCharacterPositionFromMouseEvent(event, textarea) {
+        const text = textarea.value;
+        const rect = textarea.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        // Get scroll position
+        const scrollTop = textarea.scrollTop;
+        const scrollLeft = textarea.scrollLeft;
+        
+        // Get computed styles for accurate measurements
+        const style = window.getComputedStyle(textarea);
+        const fontSize = parseFloat(style.fontSize);
+        const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
+        const charWidth = fontSize * MONOSPACE_CHAR_WIDTH_FACTOR;
+        
+        // Calculate line and column
+        const line = Math.floor((y + scrollTop) / lineHeight);
+        const col = Math.floor((x + scrollLeft) / charWidth);
+        
+        // Convert to character position
+        const lines = text.split('\n');
+        let position = 0;
+        for (let i = 0; i < line && i < lines.length; i++) {
+            position += lines[i].length + 1; // +1 for newline
+        }
+        position += Math.min(col, lines[line]?.length || 0);
+        
+        return position;
+    }
+    
+    /**
+     * Handle clicks on text areas to detect if user clicked on a URL
+     * @param {MouseEvent} event - The click event
+     * @param {HTMLTextAreaElement} textarea - The textarea element
+     */
+    async function handleTextClick(event, textarea) {
+        // Only handle Ctrl+Click (Windows/Linux) or Cmd+Click (macOS)
+        if (!event.ctrlKey && !event.metaKey) {
+            return;
+        }
+        
+        event.preventDefault();
+        
+        const text = textarea.value;
+        const position = getCharacterPositionFromMouseEvent(event, textarea);
+        
+        // Find all URLs in the text
+        const matches = [...text.matchAll(urlRegex)];
+        
+        // Check if click position is within or very close to a URL
+        for (const match of matches) {
+            const urlStart = match.index;
+            const urlEnd = match.index + match[0].length;
+            
+            // Check if position is within the URL (with tolerance)
+            if (position >= urlStart - CLICK_TOLERANCE_CHARS && position <= urlEnd + CLICK_TOLERANCE_CHARS) {
+                const url = match[0];
+                
+                // Ensure URL has a protocol
+                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                
+                try {
+                    // Use our custom Tauri command to open URL
+                    // Note: The 'app' parameter is automatically injected by Tauri - no need to pass it
+                    await window.invoke('open_url_in_browser', { url: fullUrl });
+                } catch (error) {
+                    console.error('Failed to open URL:', error);
+                    customAlert(`Failed to open link: ${error}`, '❌ Error');
+                }
+                break;
+            }
+        }
+    }
+    
+    // Add click handlers to both notes textareas
+    if (notesText) {
+        notesText.addEventListener('click', (e) => handleTextClick(e, notesText));
+    }
+    
+    // Also add handler to the edit todo notes textarea when modal is shown
+    const editTodoNotes = document.getElementById('edit-todo-notes');
+    if (editTodoNotes) {
+        editTodoNotes.addEventListener('click', (e) => handleTextClick(e, editTodoNotes));
+    }
+    
+    // Add visual feedback by changing cursor when hovering over URLs with Ctrl/Cmd
+    function handleTextHover(event, textarea) {
+        if (!event.ctrlKey && !event.metaKey) {
+            textarea.style.cursor = 'text';
+            return;
+        }
+        
+        const text = textarea.value;
+        const position = getCharacterPositionFromMouseEvent(event, textarea);
+        
+        // Check if hovering over a URL
+        const matches = [...text.matchAll(urlRegex)];
+        let overUrl = false;
+        
+        for (const match of matches) {
+            const urlStart = match.index;
+            const urlEnd = match.index + match[0].length;
+            
+            if (position >= urlStart && position <= urlEnd) {
+                overUrl = true;
+                break;
+            }
+        }
+        
+        textarea.style.cursor = overUrl ? 'pointer' : 'text';
+    }
+    
+    if (notesText) {
+        notesText.addEventListener('mousemove', (e) => handleTextHover(e, notesText));
+    }
+    if (editTodoNotes) {
+        editTodoNotes.addEventListener('mousemove', (e) => handleTextHover(e, editTodoNotes));
     }
 }
 
