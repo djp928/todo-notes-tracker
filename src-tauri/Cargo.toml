@@ -1,6 +1,6 @@
 [package]
 name = "todo-notes-tracker"
-version = "1.4.0"
+version = "1.5.0"
 description = "A bullet journal style todo app with pomodoro timer"
 authors = ["djp928"]
 license = "MIT"
