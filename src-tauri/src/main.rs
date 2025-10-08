@@ -445,11 +445,11 @@ fn get_app_version() -> String {
 #[tauri::command]
 async fn open_url_in_browser(url: String, app: tauri::AppHandle) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
-    
+
     app.opener()
         .open_url(url, None::<&str>)
         .map_err(|e| format!("Failed to open URL: {}", e))?;
-    
+
     Ok(())
 }
 
