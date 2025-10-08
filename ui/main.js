@@ -1555,10 +1555,51 @@ async function setupLinkHandling() {
     // Empirically determined average monospace character width factor.
     // For most monospace fonts, the average character width is about 0.55 times the font size in pixels.
     // This value was derived by measuring rendered text in Chrome/Firefox for common monospace fonts.
+    // Note: While Canvas measureText() could provide more accuracy, this approximation is sufficient
+    // for the tolerance-based approach and avoids the overhead of canvas operations on every click/hover.
     const MONOSPACE_CHAR_WIDTH_FACTOR = 0.55;
     
     // Number of characters of tolerance for imprecise clicking near URLs
     const CLICK_TOLERANCE_CHARS = 3;
+    
+    /**
+     * Calculate character position from mouse event coordinates.
+     * Converts click/hover coordinates to approximate character index in textarea.
+     * 
+     * @param {MouseEvent} event - The mouse event
+     * @param {HTMLTextAreaElement} textarea - The textarea element
+     * @returns {number} Approximate character position in the text
+     */
+    function getCharacterPositionFromMouseEvent(event, textarea) {
+        const text = textarea.value;
+        const rect = textarea.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        // Get scroll position
+        const scrollTop = textarea.scrollTop;
+        const scrollLeft = textarea.scrollLeft;
+        
+        // Get computed styles for accurate measurements
+        const style = window.getComputedStyle(textarea);
+        const fontSize = parseFloat(style.fontSize);
+        const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
+        const charWidth = fontSize * MONOSPACE_CHAR_WIDTH_FACTOR;
+        
+        // Calculate line and column
+        const line = Math.floor((y + scrollTop) / lineHeight);
+        const col = Math.floor((x + scrollLeft) / charWidth);
+        
+        // Convert to character position
+        const lines = text.split('\n');
+        let position = 0;
+        for (let i = 0; i < line && i < lines.length; i++) {
+            position += lines[i].length + 1; // +1 for newline
+        }
+        position += Math.min(col, lines[line]?.length || 0);
+        
+        return position;
+    }
     
     /**
      * Handle clicks on text areas to detect if user clicked on a URL
@@ -1574,41 +1615,12 @@ async function setupLinkHandling() {
         event.preventDefault();
         
         const text = textarea.value;
-        
-        // Get character position from click coordinates
-        const rect = textarea.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        
-        // Get scroll position
-        const scrollTop = textarea.scrollTop;
-        const scrollLeft = textarea.scrollLeft;
-        
-        // Approximate character position
-        const style = window.getComputedStyle(textarea);
-        const fontSize = parseFloat(style.fontSize);
-        const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
-        
-        // Estimate character width - use a more accurate calculation
-        const charWidth = fontSize * MONOSPACE_CHAR_WIDTH_FACTOR;
-        
-        // Calculate line and column
-        const line = Math.floor((y + scrollTop) / lineHeight);
-        const col = Math.floor((x + scrollLeft) / charWidth);
-        
-        // Convert to character position
-        const lines = text.split('\n');
-        let position = 0;
-        for (let i = 0; i < line && i < lines.length; i++) {
-            position += lines[i].length + 1; // +1 for newline
-        }
-        position += Math.min(col, lines[line]?.length || 0);
+        const position = getCharacterPositionFromMouseEvent(event, textarea);
         
         // Find all URLs in the text
         const matches = [...text.matchAll(urlRegex)];
         
         // Check if click position is within or very close to a URL
-        // Add a small tolerance for imprecise clicking
         for (const match of matches) {
             const urlStart = match.index;
             const urlEnd = match.index + match[0].length;
@@ -1622,6 +1634,7 @@ async function setupLinkHandling() {
                 
                 try {
                     // Use our custom Tauri command to open URL
+                    // Note: The 'app' parameter is automatically injected by Tauri - no need to pass it
                     await window.invoke('open_url_in_browser', { url: fullUrl });
                 } catch (error) {
                     console.error('Failed to open URL:', error);
@@ -1651,29 +1664,7 @@ async function setupLinkHandling() {
         }
         
         const text = textarea.value;
-        const rect = textarea.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        
-        // Get scroll position
-        const scrollTop = textarea.scrollTop;
-        const scrollLeft = textarea.scrollLeft;
-        
-        // Approximate position
-        const style = window.getComputedStyle(textarea);
-        const fontSize = parseFloat(style.fontSize);
-        const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
-        const charWidth = fontSize * MONOSPACE_CHAR_WIDTH_FACTOR;
-        
-        const line = Math.floor((y + scrollTop) / lineHeight);
-        const col = Math.floor((x + scrollLeft) / charWidth);
-        
-        const lines = text.split('\n');
-        let position = 0;
-        for (let i = 0; i < line && i < lines.length; i++) {
-            position += lines[i].length + 1;
-        }
-        position += Math.min(col, lines[line]?.length || 0);
+        const position = getCharacterPositionFromMouseEvent(event, textarea);
         
         // Check if hovering over a URL
         const matches = [...text.matchAll(urlRegex)];
