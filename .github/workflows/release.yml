@@ -238,60 +238,135 @@ jobs:
       - name: Generate release notes
         id: release-notes
         run: |
-          # Get commits since last tag
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          # Get the tag we're about to create (but haven't yet)
+          NEW_TAG="v${{ needs.version.outputs.new-version }}"
+          
+          # Get the previous tag (excluding the new one if it exists)
+          # Use --exclude to ignore the new tag pattern
+          LATEST_TAG=$(git describe --tags --abbrev=0 --exclude="$NEW_TAG" 2>/dev/null || echo "")
+          
+          echo "Previous tag: $LATEST_TAG"
+          echo "New tag: $NEW_TAG"
+          
+          # Get all commits since last tag
           if [ -n "$LATEST_TAG" ]; then
-            COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline --pretty=format:"- %s" | head -20)
+            echo "Getting commits from $LATEST_TAG to HEAD..."
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline --pretty=format:"- %s" --no-merges)
+            COMMIT_COUNT=$(git rev-list ${LATEST_TAG}..HEAD --count --no-merges)
           else
-            COMMITS=$(git log --oneline --pretty=format:"- %s" | head -10)
+            echo "No previous tag found, getting all commits..."
+            COMMITS=$(git log --oneline --pretty=format:"- %s" --no-merges | head -20)
+            COMMIT_COUNT=$(git rev-list HEAD --count --no-merges)
           fi
           
+          echo "Found $COMMIT_COUNT commits"
+          
+          # Group commits by type (feat, fix, chore, docs, etc.)
+          FEATURES=$(echo "$COMMITS" | grep -i "^- feat" || echo "")
+          FIXES=$(echo "$COMMITS" | grep -i "^- fix" || echo "")
+          CHORES=$(echo "$COMMITS" | grep -i "^- chore" || echo "")
+          DOCS=$(echo "$COMMITS" | grep -i "^- docs" || echo "")
+          OTHER=$(echo "$COMMITS" | grep -iv "^- \(feat\|fix\|chore\|docs\)" || echo "")
+          
           # Create release notes
-          cat > release_notes.md << EOF
+          cat > release_notes.md << 'EOF'
           # Todo Notes Tracker v${{ needs.version.outputs.new-version }}
           
           A ${{ needs.version.outputs.version-type }} release with new features and improvements.
           
           ## What's Changed
-          $COMMITS
+          
+          EOF
+          
+          # Add features section if any
+          if [ -n "$FEATURES" ]; then
+            echo "### ✨ New Features" >> release_notes.md
+            echo "$FEATURES" >> release_notes.md
+            echo "" >> release_notes.md
+          fi
+          
+          # Add fixes section if any
+          if [ -n "$FIXES" ]; then
+            echo "### 🐛 Bug Fixes" >> release_notes.md
+            echo "$FIXES" >> release_notes.md
+            echo "" >> release_notes.md
+          fi
+          
+          # Add documentation section if any
+          if [ -n "$DOCS" ]; then
+            echo "### 📚 Documentation" >> release_notes.md
+            echo "$DOCS" >> release_notes.md
+            echo "" >> release_notes.md
+          fi
+          
+          # Add chores section if any
+          if [ -n "$CHORES" ]; then
+            echo "### 🔧 Maintenance" >> release_notes.md
+            echo "$CHORES" >> release_notes.md
+            echo "" >> release_notes.md
+          fi
+          
+          # Add other changes if any
+          if [ -n "$OTHER" ]; then
+            echo "### 🔄 Other Changes" >> release_notes.md
+            echo "$OTHER" >> release_notes.md
+            echo "" >> release_notes.md
+          fi
+          
+          # Add download and installation sections
+          cat >> release_notes.md << 'EOF'
           
           ## Download
           Choose the appropriate package for your platform:
           
-          - **macOS**: Download the \`.dmg\` file or \`.app\` bundle
-          - **Windows**: Download the \`.msi\` installer or \`.exe\` file  
-          - **Linux**: Download the \`.AppImage\` or \`.deb\` package
+          - **macOS**: Download the \`.dmg\` file for your architecture
+            - Apple Silicon (M1/M2/M3): `*_aarch64.dmg`
+            - Intel: `*_x64.dmg`
+          - **Windows**: Download the \`.msi\` installer or \`.exe\` setup file
+          - **Linux**: Download the \`.deb\` package
           
           ## Installation
           
           ### macOS
-          1. Download the DMG file
-          2. Open it and drag Todo Notes Tracker to Applications
+          1. Download the appropriate DMG file for your Mac
+          2. Open the DMG and drag Todo Notes Tracker to Applications
           3. Launch from Applications folder
+          4. If macOS blocks it, go to System Preferences → Security & Privacy → Open Anyway
           
           ### Windows  
-          1. Download the MSI installer
+          1. Download the MSI installer or EXE setup file
           2. Run the installer and follow the prompts
           3. Launch from Start Menu or Desktop shortcut
           
           ### Linux
-          1. Download the AppImage file
-          2. Make it executable: \`chmod +x Todo-Notes-Tracker*.AppImage\`
-          3. Run the AppImage file
-          
-          Or install the DEB package: \`sudo dpkg -i todo-notes-tracker*.deb\`
+          1. Download the DEB package
+          2. Install: \`sudo dpkg -i todo-notes-tracker*.deb\`
+          3. Or double-click the file to install via Software Center
+          4. Launch from Applications menu or run \`todo-notes-tracker\`
           
           ## Features
           - ✅ Daily todo management with bullet journal symbols
+          - ✅ Edit todo items with double-click
+          - ✅ Per-item notes for detailed task information
           - ✅ Calendar view with event planning
           - ✅ Notes section for daily thoughts
           - ✅ Pomodoro timer with notifications
           - ✅ Text zoom for accessibility
+          - ✅ Dark mode support
           - ✅ Data persistence and cross-platform support
           - ✅ Resizable panels for customized workspace
           
-          **Full Changelog**: https://github.com/${{ github.repository }}/compare/$LATEST_TAG...v${{ needs.version.outputs.new-version }}
           EOF
+          
+          # Add comparison link if we have a previous tag
+          if [ -n "$LATEST_TAG" ]; then
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$LATEST_TAG...v${{ needs.version.outputs.new-version }}" >> release_notes.md
+          else
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/commits/v${{ needs.version.outputs.new-version }}" >> release_notes.md
+          fi
+          
+          echo "Release notes generated successfully"
+          cat release_notes.md
 
       - name: Create release tag
         run: |
