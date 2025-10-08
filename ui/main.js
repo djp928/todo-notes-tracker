@@ -136,12 +136,11 @@ async function initApp() {
         
         // Run one-time migration of calendar events to todos
         try {
-            const migrationResult = await window.invoke('migrate_calendar_events_to_todos', {
+            await window.invoke('migrate_calendar_events_to_todos', {
                 dataDir: dataDir
             });
-            console.log('Migration:', migrationResult);
         } catch (error) {
-            console.error('Migration failed (non-fatal):', error);
+            console.error('Migration failed but app will continue to work normally:', error);
             // Don't block app startup if migration fails
         }
         
