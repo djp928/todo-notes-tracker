@@ -50,7 +50,6 @@ let pomodoroInterval = null;
 
 // Calendar state
 let calendarDate = new Date(); // Date for which month is displayed
-let calendarEvents = {}; // Store events by date key (YYYY-MM-DD)
 let activeInputDate = null; // Track which date has active input (YYYY-MM-DD format)
 let calendarTodoCounts = {}; // Store todo counts by date key (YYYY-MM-DD) - { total: n, completed: n }
 
@@ -135,6 +134,17 @@ async function initApp() {
         // Get the app data directory
         dataDir = await window.invoke('get_app_data_dir');
         
+        // Run one-time migration of calendar events to todos
+        try {
+            const migrationResult = await window.invoke('migrate_calendar_events_to_todos', {
+                dataDir: dataDir
+            });
+            console.log('Migration:', migrationResult);
+        } catch (error) {
+            console.error('Migration failed (non-fatal):', error);
+            // Don't block app startup if migration fails
+        }
+        
         // Load dark mode preference BEFORE setting up event listeners to avoid race condition
         await loadDarkModePreference();
         
@@ -149,9 +159,6 @@ async function initApp() {
         
         // Load today's data
         await loadDayData(currentDate);
-        
-        // Load calendar events
-        await loadCalendarEventsFromStorage();
         
         // Set up event listeners (after preference is loaded)
         setupEventListeners();
@@ -1024,42 +1031,39 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
     dayNumberEl.textContent = dayNumber;
     dayEl.appendChild(dayNumberEl);
     
-    // Event input
-    const eventInput = document.createElement('input');
-    eventInput.type = 'text';
-    eventInput.className = 'calendar-event-input';
-    eventInput.placeholder = 'Add event...';
-    eventInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && eventInput.value.trim()) {
-            addCalendarEvent(date, eventInput.value.trim());
-            eventInput.value = '';
-            // Keep the input visible and focused so user can add more events
-            eventInput.focus();
+    // Todo input (for creating quick todos on calendar days)
+    const todoInput = document.createElement('input');
+    todoInput.type = 'text';
+    todoInput.className = 'calendar-event-input';
+    todoInput.placeholder = 'Add todo...';
+    todoInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && todoInput.value.trim()) {
+            addCalendarTodo(date, todoInput.value.trim());
+            todoInput.value = '';
+            // Keep the input visible and focused so user can add more todos
+            todoInput.focus();
         }
     });
-    eventInput.addEventListener('blur', (e) => {
+    todoInput.addEventListener('blur', (e) => {
         // Hide input when it loses focus, but with a small delay
         // to allow clicking on the input again without it hiding
         setTimeout(() => {
-            if (document.activeElement !== eventInput) {
+            if (document.activeElement !== todoInput) {
                 dayEl.classList.remove('show-input');
                 activeInputDate = null; // Clear tracking
             }
         }, INPUT_BLUR_DELAY);
     });
     // Prevent clicks on input from propagating to day click handler
-    eventInput.addEventListener('click', (e) => {
+    todoInput.addEventListener('click', (e) => {
         e.stopPropagation();
     });
-    dayEl.appendChild(eventInput);
+    dayEl.appendChild(todoInput);
     
-    // Events container
+    // Events container (kept for styling compatibility, but no longer used for events)
     const eventsContainer = document.createElement('div');
     eventsContainer.className = 'calendar-events';
     dayEl.appendChild(eventsContainer);
-    
-    // Load existing events for this day
-    loadCalendarEventsForDay(dateStr, eventsContainer);
     
     // Add todo count badge if there are todos for this day
     const todoCount = calendarTodoCounts[dateStr];
@@ -1089,12 +1093,7 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
         e.stopPropagation();
         
         // If clicking on the input itself, let it handle normally
-        if (e.target === eventInput) {
-            return;
-        }
-        
-        // If clicking on an event, let it handle normally
-        if (e.target.classList.contains('calendar-event')) {
+        if (e.target === todoInput) {
             return;
         }
         
@@ -1118,7 +1117,7 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
             
             // Focus the input after a small delay
             setTimeout(() => {
-                eventInput.focus();
+                todoInput.focus();
             }, INPUT_FOCUS_DELAY);
         }
         
@@ -1129,52 +1128,25 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
     return dayEl;
 }
 
-// Add an event to a calendar day
-async function addCalendarEvent(date, eventText) {
+// Add a todo directly from the calendar
+async function addCalendarTodo(date, todoText) {
     try {
         const dateStr = formatDate(date);
         
-        // Store event in calendar events
-        if (!calendarEvents[dateStr]) {
-            calendarEvents[dateStr] = [];
-        }
-        calendarEvents[dateStr].push(eventText);
-        
-        // Save calendar events to storage
-        await saveCalendarEvents();
-        
-        // Create a corresponding todo item
-        await createTodoFromEvent(date, eventText);
-        
-        // Update calendar display
-        await updateCalendar();
-        
-    } catch (error) {
-        console.error('Failed to add calendar event:', error);
-        showCustomAlert('Error', 'Failed to add calendar event: ' + error.message);
-    }
-}
-
-// Create a todo item from a calendar event
-async function createTodoFromEvent(date, eventText) {
-    try {
-        // Load the day data for the event date
-        const dateStr = formatDate(date);
-        
+        // Load the day data for the date
         const dayData = await window.invoke('load_day_data', { 
             date: dateStr, 
             dataDir: dataDir 
         });
         
-        
-        // Ensure the dayData has the correct date field (the backend expects a date field)
+        // Ensure the dayData has the correct date field
         if (!dayData.date) {
             dayData.date = dateStr;
         }
         
-        // Create the todo item using the backend command (same as regular todo creation)
+        // Create the todo item using the backend command
         const newTodo = await window.invoke('create_todo_item', {
-            text: `📅 ${eventText}`
+            text: `📅 ${todoText}`
         });
         
         dayData.todos.push(newTodo);
@@ -1185,33 +1157,18 @@ async function createTodoFromEvent(date, eventText) {
             dataDir: dataDir
         });
         
-        
         // If this is the current day, update the UI
         if (dateStr === formatDate(currentDate)) {
             currentDayData = dayData;
             updateUI();
-        } else {
         }
         
+        // Update calendar display to show new todo count
+        await updateCalendar();
+        
     } catch (error) {
-        console.error('Failed to create todo from event:', error);
-        throw error;
-    }
-}
-
-// Load events for a specific day and display them in the UI
-function loadCalendarEventsForDay(dateStr, container) {
-    if (calendarEvents[dateStr]) {
-        calendarEvents[dateStr].forEach(event => {
-            const eventEl = document.createElement('div');
-            eventEl.className = 'calendar-event';
-            eventEl.textContent = event;
-            eventEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                // TODO: Add event editing/deletion functionality
-            });
-            container.appendChild(eventEl);
-        });
+        console.error('Failed to add todo from calendar:', error);
+        showCustomAlert('Error', 'Failed to add todo: ' + error.message);
     }
 }
 
@@ -1221,32 +1178,6 @@ async function navigateToDate(date) {
     calendarDate = new Date(date); // Update calendar view to show the selected month
     await loadDayData(currentDate);
     await updateCalendar(); // Refresh calendar to show new selection
-}
-
-// Save calendar events to persistent storage
-async function saveCalendarEvents() {
-    try {
-        await window.invoke('save_calendar_events', {
-            events: calendarEvents,
-            dataDir: dataDir
-        });
-    } catch (error) {
-        console.error('Failed to save calendar events:', error);
-    }
-}
-
-// Load calendar events from persistent storage
-async function loadCalendarEventsFromStorage() {
-    try {
-        const events = await window.invoke('load_calendar_events', {
-            dataDir: dataDir
-        });
-        calendarEvents = events || {};
-    } catch (error) {
-        console.error('Failed to load calendar events:', error);
-        // Initialize with empty object if loading fails
-        calendarEvents = {};
-    }
 }
 
 /// Load todo counts for all days in the current calendar month
