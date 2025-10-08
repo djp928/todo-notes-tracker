@@ -51,6 +51,16 @@ let pomodoroInterval = null;
 // Calendar state
 let calendarDate = new Date(); // Date for which month is displayed
 let calendarEvents = {}; // Store events by date key (YYYY-MM-DD)
+let activeInputDate = null; // Track which date has active input (YYYY-MM-DD format)
+
+// Calendar input timing constants
+// These delays balance responsiveness and smooth input transitions
+// - INPUT_FOCUS_DELAY: Short enough to feel instant, but allows DOM to settle before focusing
+// - INPUT_BLUR_DELAY: Slightly longer to allow for accidental blurs to be cancelled by user action
+// - INPUT_RESTORE_DELAY: Used after DOM recreation to ensure input is available for focus
+const INPUT_FOCUS_DELAY = 50;    // ms; minimal perceived delay after input appears
+const INPUT_BLUR_DELAY = 150;    // ms; allows user to quickly refocus without hiding input
+const INPUT_RESTORE_DELAY = 100; // ms; ensures input is present in DOM before focusing
 
 // Panel resize state
 let isResizing = false;
@@ -242,6 +252,29 @@ function setupEventListeners() {
     
     // Keyboard shortcuts for zoom
     document.addEventListener('keydown', handleZoomKeyboard);
+    
+    // Calendar input: hide when pressing ESC or clicking outside
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const activeDay = document.querySelector('.calendar-day.show-input');
+            if (activeDay) {
+                activeDay.classList.remove('show-input');
+                activeInputDate = null; // Clear tracking
+            }
+        }
+    });
+    
+    // Use mousedown instead of click to avoid conflicts with calendar day clicks
+    document.addEventListener('mousedown', (e) => {
+        // If clicking outside calendar grid, hide all event inputs
+        const calendarGrid = document.getElementById('calendar-grid');
+        // Check if the click is outside the calendar AND not on a calendar day
+        if (calendarGrid && !calendarGrid.contains(e.target)) {
+            const allDays = document.querySelectorAll('.calendar-day.show-input');
+            allDays.forEach(day => day.classList.remove('show-input'));
+            activeInputDate = null; // Clear tracking
+        }
+    });
     
     // Dark mode toggle
     if (darkModeToggleBtn) {
@@ -930,6 +963,21 @@ function updateCalendar() {
         const dayEl = createCalendarDay(date, today, todayStr, currentDateStr);
         calendarGrid.appendChild(dayEl);
     }
+    
+    // Restore input state if there was an active input before calendar refresh
+    if (activeInputDate) {
+        const targetDay = calendarGrid.querySelector(`[data-date="${activeInputDate}"]`);
+        if (targetDay) {
+            targetDay.classList.add('show-input');
+            // Focus the input after a small delay
+            setTimeout(() => {
+                const input = targetDay.querySelector('.calendar-event-input');
+                if (input) {
+                    input.focus();
+                }
+            }, INPUT_RESTORE_DELAY);
+        }
+    }
 }
 
 // Create a calendar day element
@@ -942,6 +990,9 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
     const isCurrentMonth = date.getMonth() === calendarDate.getMonth();
     const isToday = dateStr === todayStr;
     const isSelected = dateStr === currentDateStr;
+    
+    // Store date string as data attribute for easy lookup
+    dayEl.dataset.date = dateStr;
     
     // Add appropriate classes
     if (!isCurrentMonth) {
@@ -969,7 +1020,23 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
         if (e.key === 'Enter' && eventInput.value.trim()) {
             addCalendarEvent(date, eventInput.value.trim());
             eventInput.value = '';
+            // Keep the input visible and focused so user can add more events
+            eventInput.focus();
         }
+    });
+    eventInput.addEventListener('blur', (e) => {
+        // Hide input when it loses focus, but with a small delay
+        // to allow clicking on the input again without it hiding
+        setTimeout(() => {
+            if (document.activeElement !== eventInput) {
+                dayEl.classList.remove('show-input');
+                activeInputDate = null; // Clear tracking
+            }
+        }, INPUT_BLUR_DELAY);
+    });
+    // Prevent clicks on input from propagating to day click handler
+    eventInput.addEventListener('click', (e) => {
+        e.stopPropagation();
     });
     dayEl.appendChild(eventInput);
     
@@ -981,11 +1048,47 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
     // Load existing events for this day
     loadCalendarEventsForDay(dateStr, eventsContainer);
     
-    // Click handler to navigate to this day
+    // Click handler to navigate to this day and show input
     dayEl.addEventListener('click', (e) => {
-        if (e.target !== eventInput) {
-            navigateToDate(date);
+        // Stop propagation to prevent document click handler from firing
+        e.stopPropagation();
+        
+        // If clicking on the input itself, let it handle normally
+        if (e.target === eventInput) {
+            return;
         }
+        
+        // If clicking on an event, let it handle normally
+        if (e.target.classList.contains('calendar-event')) {
+            return;
+        }
+        
+        // Remove show-input class from the currently active day, if it's not the one being clicked
+        const activeDay = document.querySelector('.calendar-day.show-input');
+        if (activeDay && activeDay !== dayEl) {
+            activeDay.classList.remove('show-input');
+        }
+        
+        // Check if this day already has input showing
+        const hadInput = dayEl.classList.contains('show-input');
+        
+        if (hadInput) {
+            // Hide the input
+            dayEl.classList.remove('show-input');
+            activeInputDate = null;
+        } else {
+            // Show the input and track it
+            dayEl.classList.add('show-input');
+            activeInputDate = dateStr;
+            
+            // Focus the input after a small delay
+            setTimeout(() => {
+                eventInput.focus();
+            }, INPUT_FOCUS_DELAY);
+        }
+        
+        // Navigate to this day
+        navigateToDate(date);
     });
     
     return dayEl;

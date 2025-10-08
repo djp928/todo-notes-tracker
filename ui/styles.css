@@ -913,6 +913,12 @@ body {
     background: var(--input-bg);
     color: var(--text-primary);
     margin-bottom: 0.125rem;
+    display: none; /* Hidden by default */
+    transition: all 0.2s ease;
+}
+
+.calendar-day.show-input .calendar-event-input {
+    display: block; /* Show when day has show-input class */
 }
 
 .calendar-event-input:focus {
