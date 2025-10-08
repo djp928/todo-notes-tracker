@@ -52,6 +52,7 @@ let pomodoroInterval = null;
 let calendarDate = new Date(); // Date for which month is displayed
 let calendarEvents = {}; // Store events by date key (YYYY-MM-DD)
 let activeInputDate = null; // Track which date has active input (YYYY-MM-DD format)
+let calendarTodoCounts = {}; // Store todo counts by date key (YYYY-MM-DD) - { total: n, completed: n }
 
 // Calendar input timing constants
 // These delays balance responsiveness and smooth input transitions
@@ -156,7 +157,7 @@ async function initApp() {
         setupEventListeners();
         
         // Initialize calendar
-        updateCalendar();
+        await updateCalendar();
         
         // Initialize zoom level (in case preference loading failed)
         applyZoom();
@@ -317,6 +318,15 @@ async function saveDayData() {
             dayData: currentDayData,
             dataDir: dataDir
         });
+        
+        // Update calendar todo counts for the current day
+        const dateStr = formatDate(currentDate);
+        const total = currentDayData.todos ? currentDayData.todos.length : 0;
+        const completed = currentDayData.todos ? currentDayData.todos.filter(todo => todo.completed).length : 0;
+        calendarTodoCounts[dateStr] = { total, completed };
+        
+        // Refresh calendar display to show updated badge
+        updateCalendar();
     } catch (error) {
         console.error('Failed to save day data:', error);
     }
@@ -912,17 +922,20 @@ function toggleCalendarPane() {
 }
 
 // Navigate calendar months
-function navigateMonth(direction) {
+async function navigateMonth(direction) {
     calendarDate.setMonth(calendarDate.getMonth() + direction);
-    updateCalendar();
+    await updateCalendar();
 }
 
 // Generate and display calendar
-function updateCalendar() {
+async function updateCalendar() {
     if (!calendarGrid || !calendarMonthYear) {
         console.error('Calendar elements not found!');
         return;
     }
+    
+    // Load todo counts for the calendar month
+    await loadCalendarTodoCounts();
     
     // Update month/year display
     const monthNames = [
@@ -1048,6 +1061,28 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
     // Load existing events for this day
     loadCalendarEventsForDay(dateStr, eventsContainer);
     
+    // Add todo count badge if there are todos for this day
+    const todoCount = calendarTodoCounts[dateStr];
+    if (todoCount && todoCount.total > 0) {
+        const badge = document.createElement('div');
+        badge.className = 'calendar-todo-badge';
+        
+        // Determine badge class based on completion status
+        if (todoCount.completed === todoCount.total) {
+            badge.classList.add('all-complete');
+        } else if (todoCount.completed > 0) {
+            badge.classList.add('partial-complete');
+        } else {
+            badge.classList.add('none-complete');
+        }
+        
+        // Display format: "2/5" (completed/total)
+        badge.textContent = `${todoCount.completed}/${todoCount.total}`;
+        badge.title = `${todoCount.completed} of ${todoCount.total} todos completed`;
+        
+        dayEl.appendChild(badge);
+    }
+    
     // Click handler to navigate to this day and show input
     dayEl.addEventListener('click', (e) => {
         // Stop propagation to prevent document click handler from firing
@@ -1112,7 +1147,7 @@ async function addCalendarEvent(date, eventText) {
         await createTodoFromEvent(date, eventText);
         
         // Update calendar display
-        updateCalendar();
+        await updateCalendar();
         
     } catch (error) {
         console.error('Failed to add calendar event:', error);
@@ -1185,7 +1220,7 @@ async function navigateToDate(date) {
     currentDate = new Date(date);
     calendarDate = new Date(date); // Update calendar view to show the selected month
     await loadDayData(currentDate);
-    updateCalendar(); // Refresh calendar to show new selection
+    await updateCalendar(); // Refresh calendar to show new selection
 }
 
 // Save calendar events to persistent storage
@@ -1212,6 +1247,45 @@ async function loadCalendarEventsFromStorage() {
         // Initialize with empty object if loading fails
         calendarEvents = {};
     }
+}
+
+/// Load todo counts for all days in the current calendar month
+/// This loads the actual todo data for each day to display counts in the calendar
+async function loadCalendarTodoCounts() {
+    calendarTodoCounts = {}; // Clear existing counts
+    
+    // Get first and last day of the calendar view (6 weeks = 42 days)
+    const firstDay = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1);
+    const startDate = new Date(firstDay);
+    startDate.setDate(firstDay.getDate() - firstDay.getDay()); // Start from Sunday
+    
+    // Load todos for all 42 days shown in calendar
+    const loadPromises = [];
+    for (let i = 0; i < 42; i++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + i);
+        const dateStr = formatDate(date);
+        
+        // Load day data for this date
+        const promise = window.invoke('load_day_data', { 
+            date: dateStr, 
+            dataDir: dataDir 
+        }).then(dayData => {
+            // Count total and completed todos
+            const total = dayData.todos ? dayData.todos.length : 0;
+            const completed = dayData.todos ? dayData.todos.filter(todo => todo.completed).length : 0;
+            
+            calendarTodoCounts[dateStr] = { total, completed };
+        }).catch(error => {
+            // If loading fails, assume no todos
+            calendarTodoCounts[dateStr] = { total: 0, completed: 0 };
+        });
+        
+        loadPromises.push(promise);
+    }
+    
+    // Wait for all loads to complete
+    await Promise.all(loadPromises);
 }
 
 // Panel resizing functions

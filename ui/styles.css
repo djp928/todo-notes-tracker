@@ -961,6 +961,48 @@ body {
     background: rgba(255,255,255,0.3);
 }
 
+/* Todo count badge in calendar */
+.calendar-todo-badge {
+    display: inline-block;
+    padding: 0.125rem 0.25rem;
+    border-radius: 3px;
+    font-size: 0.55rem;
+    font-weight: 600;
+    margin-top: 0.125rem;
+    text-align: center;
+    white-space: nowrap;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+/* Badge color based on completion status */
+.calendar-todo-badge.all-complete {
+    background: #28a745;
+    color: white;
+}
+
+.calendar-todo-badge.partial-complete {
+    background: #4a90e2;
+    color: white;
+}
+
+.calendar-todo-badge.none-complete {
+    background: #6c757d;
+    color: white;
+}
+
+/* Badge on selected day */
+.calendar-day.selected .calendar-todo-badge {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.calendar-day.selected .calendar-todo-badge.all-complete,
+.calendar-day.selected .calendar-todo-badge.partial-complete,
+.calendar-day.selected .calendar-todo-badge.none-complete {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
 /* Responsive calendar */
 @media (max-width: 768px) {
     .calendar-pane {
