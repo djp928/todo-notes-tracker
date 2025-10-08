@@ -1146,7 +1146,7 @@ async function addCalendarTodo(date, todoText) {
         
         // Create the todo item using the backend command
         const newTodo = await window.invoke('create_todo_item', {
-            text: `📅 ${todoText}`
+            text: todoText
         });
         
         dayData.todos.push(newTodo);
