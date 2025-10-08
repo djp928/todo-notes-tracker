@@ -54,9 +54,13 @@ let calendarEvents = {}; // Store events by date key (YYYY-MM-DD)
 let activeInputDate = null; // Track which date has active input (YYYY-MM-DD format)
 
 // Calendar input timing constants
-const INPUT_FOCUS_DELAY = 50;   // Delay before focusing input after showing (ms)
-const INPUT_BLUR_DELAY = 150;   // Delay before hiding input after blur (ms)
-const INPUT_RESTORE_DELAY = 100; // Delay before focusing input after DOM recreation (ms)
+// These delays balance responsiveness and smooth input transitions
+// - INPUT_FOCUS_DELAY: Short enough to feel instant, but allows DOM to settle before focusing
+// - INPUT_BLUR_DELAY: Slightly longer to allow for accidental blurs to be cancelled by user action
+// - INPUT_RESTORE_DELAY: Used after DOM recreation to ensure input is available for focus
+const INPUT_FOCUS_DELAY = 50;    // ms; minimal perceived delay after input appears
+const INPUT_BLUR_DELAY = 150;    // ms; allows user to quickly refocus without hiding input
+const INPUT_RESTORE_DELAY = 100; // ms; ensures input is present in DOM before focusing
 
 // Panel resize state
 let isResizing = false;
@@ -1059,13 +1063,11 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
             return;
         }
         
-        // Remove show-input class from all other days
-        const allDays = document.querySelectorAll('.calendar-day');
-        allDays.forEach(day => {
-            if (day !== dayEl) {
-                day.classList.remove('show-input');
-            }
-        });
+        // Remove show-input class from the currently active day, if it's not the one being clicked
+        const activeDay = document.querySelector('.calendar-day.show-input');
+        if (activeDay && activeDay !== dayEl) {
+            activeDay.classList.remove('show-input');
+        }
         
         // Check if this day already has input showing
         const hadInput = dayEl.classList.contains('show-input');
