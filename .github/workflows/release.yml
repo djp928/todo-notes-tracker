@@ -317,7 +317,7 @@ jobs:
           tag: v${{ needs.version.outputs.new-version }}
           name: Todo Notes Tracker v${{ needs.version.outputs.new-version }}
           bodyFile: release_notes.md
-          artifacts: "release-artifacts/**/*"
+          artifacts: "release-artifacts/**/*.dmg,release-artifacts/**/*.msi,release-artifacts/**/*.exe,release-artifacts/**/*.deb"
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: false
           prerelease: false
