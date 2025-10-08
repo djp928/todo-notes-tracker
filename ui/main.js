@@ -1561,6 +1561,7 @@ async function setupLinkHandling() {
             return;
         }
         
+        console.log('Link click handler triggered on:', textarea.id);
         event.preventDefault();
         
         const text = textarea.value;
@@ -1594,19 +1595,26 @@ async function setupLinkHandling() {
         }
         position += Math.min(col, lines[line]?.length || 0);
         
+        console.log('Calculated position:', position, 'Line:', line, 'Col:', col);
+        
         // Find all URLs in the text
         const matches = [...text.matchAll(urlRegex)];
+        console.log('Found URLs:', matches.length);
         
         // Check if click position is within a URL
         for (const match of matches) {
             const urlStart = match.index;
             const urlEnd = match.index + match[0].length;
             
+            console.log('Checking URL:', match[0], 'Range:', urlStart, '-', urlEnd);
+            
             if (position >= urlStart && position <= urlEnd) {
                 const url = match[0];
                 
                 // Ensure URL has a protocol
                 const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                
+                console.log('Opening URL:', fullUrl);
                 
                 try {
                     // Use our custom Tauri command to open URL
