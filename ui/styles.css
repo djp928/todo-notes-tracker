@@ -931,34 +931,46 @@ body {
     font-size: 0.6rem;
 }
 
-.calendar-events {
-    flex: 1;
-    overflow-y: auto;
-    margin-top: 0.25rem;
-}
-
-.calendar-event {
-    background: #28a745;
-    color: white;
+/* Todo count badge in calendar */
+.calendar-todo-badge {
+    display: inline-block;
     padding: 0.125rem 0.25rem;
     border-radius: 3px;
-    font-size: 0.6rem;
-    margin-bottom: 0.125rem;
-    word-break: break-word;
-    cursor: pointer;
-    transition: background-color 0.2s;
+    font-size: 0.55rem;
+    font-weight: 600;
+    margin-top: 0.125rem;
+    text-align: center;
+    white-space: nowrap;
+    transition: background-color 0.2s, color 0.2s;
 }
 
-.calendar-event:hover {
-    background: #1e7e34;
+/* Badge color based on completion status */
+.calendar-todo-badge.all-complete {
+    background: #28a745;
+    color: white;
 }
 
-.calendar-day.selected .calendar-event {
-    background: rgba(255,255,255,0.2);
+.calendar-todo-badge.partial-complete {
+    background: #4a90e2;
+    color: white;
 }
 
-.calendar-day.selected .calendar-event:hover {
-    background: rgba(255,255,255,0.3);
+.calendar-todo-badge.none-complete {
+    background: #6c757d;
+    color: white;
+}
+
+/* Badge on selected day */
+.calendar-day.selected .calendar-todo-badge {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.calendar-day.selected .calendar-todo-badge.all-complete,
+.calendar-day.selected .calendar-todo-badge.partial-complete,
+.calendar-day.selected .calendar-todo-badge.none-complete {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
 }
 
 /* Responsive calendar */
@@ -974,10 +986,6 @@ body {
     
     .calendar-event-input {
         font-size: 0.6rem;
-    }
-    
-    .calendar-event {
-        font-size: 0.55rem;
     }
 }
 
