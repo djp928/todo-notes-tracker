@@ -53,6 +53,11 @@ let calendarDate = new Date(); // Date for which month is displayed
 let calendarEvents = {}; // Store events by date key (YYYY-MM-DD)
 let activeInputDate = null; // Track which date has active input (YYYY-MM-DD format)
 
+// Calendar input timing constants
+const INPUT_FOCUS_DELAY = 50;   // Delay before focusing input after showing (ms)
+const INPUT_BLUR_DELAY = 150;   // Delay before hiding input after blur (ms)
+const INPUT_RESTORE_DELAY = 100; // Delay before focusing input after DOM recreation (ms)
+
 // Panel resize state
 let isResizing = false;
 let currentResizeHandle = null;
@@ -966,7 +971,7 @@ function updateCalendar() {
                 if (input) {
                     input.focus();
                 }
-            }, 100);
+            }, INPUT_RESTORE_DELAY);
         }
     }
 }
@@ -1023,7 +1028,7 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
                 dayEl.classList.remove('show-input');
                 activeInputDate = null; // Clear tracking
             }
-        }, 150); // Increased delay for better reliability
+        }, INPUT_BLUR_DELAY);
     });
     // Prevent clicks on input from propagating to day click handler
     eventInput.addEventListener('click', (e) => {
@@ -1077,7 +1082,7 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
             // Focus the input after a small delay
             setTimeout(() => {
                 eventInput.focus();
-            }, 50);
+            }, INPUT_FOCUS_DELAY);
         }
         
         // Navigate to this day
