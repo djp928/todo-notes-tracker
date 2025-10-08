@@ -626,9 +626,9 @@ describe('Calendar Functionality', () => {
                     id: 'test_todo_123',
                     text: args.text,
                     completed: false,
-                    symbol: '•',
                     created_at: new Date().toISOString(),
-                    move_to_next_day: false
+                    move_to_next_day: false,
+                    notes: ''
                 };
             } else if (command === 'get_app_data_dir') {
                 return '/test/data';
@@ -642,7 +642,6 @@ describe('Calendar Functionality', () => {
         assert.truthy(savedData);
         assert.lengthOf(savedData.todos, 1);
         assert.equal(savedData.todos[0].text, '📅 Doctor appointment');
-        assert.equal(savedData.todos[0].symbol, '•');
         assert.falsy(savedData.todos[0].completed);
         assert.equal(savedData.todos[0].id, 'test_todo_123');
         assert.truthy(savedData.todos[0].created_at);
@@ -942,7 +941,7 @@ describe('Todo Item Editing and Notes', () => {
     });
 
     test('should persist todo notes across save/load', async () => {
-        const temp_dir = await setupMockDataDir();
+        const dataDir = await window.invoke('get_app_data_dir');
         const date = '2024-01-15';
         
         // Create todo with notes
@@ -956,17 +955,17 @@ describe('Todo Item Editing and Notes', () => {
         };
         
         // Save
-        await window.invoke('save_day_data', { dayData, dataDir: temp_dir });
+        await window.invoke('save_day_data', { dayData, dataDir: dataDir });
         
         // Load
-        const loaded = await window.invoke('load_day_data', { date, dataDir: temp_dir });
+        const loaded = await window.invoke('load_day_data', { date, dataDir: dataDir });
         
         assert.equal(loaded.todos[0].text, 'Test with notes');
         assert.equal(loaded.todos[0].notes, 'Important notes about this task');
     });
 
     test('should handle todos without notes field (backward compatibility)', async () => {
-        const temp_dir = await setupMockDataDir();
+        const dataDir = await window.invoke('get_app_data_dir');
         const date = '2024-01-15';
         
         // Create legacy todo without notes field
@@ -986,8 +985,8 @@ describe('Todo Item Editing and Notes', () => {
         };
         
         // Save and load
-        await window.invoke('save_day_data', { dayData, dataDir: temp_dir });
-        const loaded = await window.invoke('load_day_data', { date, dataDir: temp_dir });
+        await window.invoke('save_day_data', { dayData, dataDir: dataDir });
+        const loaded = await window.invoke('load_day_data', { date, dataDir: dataDir });
         
         // Should handle missing notes field gracefully
         assert.equal(loaded.todos[0].text, 'Legacy todo');

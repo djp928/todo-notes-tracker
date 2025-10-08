@@ -640,26 +640,6 @@ async function moveTodoToNextDay(index) {
     }
 }
 
-// Delete a todo
-// Make sure this function is available globally
-window.deleteTodo = function(index) {
-    
-    if (confirm('Are you sure you want to delete this todo?')) {
-        currentDayData.todos.splice(index, 1);
-        
-        if (selectedTodo === index) {
-            selectedTodo = null;
-        } else if (selectedTodo > index) {
-            selectedTodo--;
-        }
-        
-        renderTodoList();
-        updatePomodoroButton();
-        saveDayData();
-    } else {
-    }
-};
-
 // Save notes
 function saveNotes() {
     currentDayData.notes = notesText.value;
@@ -817,8 +797,6 @@ function startCountdown(totalSeconds) {
     }, 1000);
 }
 
-// This function is no longer used - simplified completion handling is in startCountdown
-
 // Stop pomodoro timer
 async function stopPomodoro() {
     pomodoroOverlay.classList.add('hidden');
@@ -832,44 +810,6 @@ async function stopPomodoro() {
         await window.invoke('stop_pomodoro_timer');
     } catch (error) {
         console.error('Failed to stop pomodoro timer:', error);
-    }
-}
-
-// Handle pomodoro completion
-async function handlePomodoroComplete(taskText) {
-    stopPomodoro();
-    
-    // Send notification
-    await window.invoke('send_notification', {
-        title: 'Pomodoro Complete!',
-        body: `Great job completing: ${taskText}. Time for a break!`
-    });
-    
-    // Mark the selected todo as completed if user wants
-    if (selectedTodo !== null && confirm('Pomodoro session complete! Mark this task as done?')) {
-        currentDayData.todos[selectedTodo].completed = true;
-        selectedTodo = null;
-        renderTodoList();
-        updatePomodoroButton();
-        saveDayData();
-    }
-}
-
-// Show browser notification
-function showNotification(title, body) {
-    // Check if the browser supports notifications
-    if ('Notification' in window) {
-        // Check if permission is granted
-        if (Notification.permission === 'granted') {
-            new Notification(title, { body });
-        } else if (Notification.permission !== 'denied') {
-            // Request permission
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    new Notification(title, { body });
-                }
-            });
-        }
     }
 }
 
@@ -1164,7 +1104,7 @@ async function addCalendarTodo(date, todoText) {
         
     } catch (error) {
         console.error('Failed to add todo from calendar:', error);
-        showCustomAlert('Error', 'Failed to add todo: ' + error.message);
+        customAlert('Failed to add todo: ' + error.message, '❌ Error');
     }
 }
 
