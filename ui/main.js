@@ -1609,19 +1609,11 @@ async function setupLinkHandling() {
                 const fullUrl = url.startsWith('http') ? url : `https://${url}`;
                 
                 try {
-                    // Use Tauri shell plugin via the open command
-                    // In Tauri v2, plugins are accessed via __TAURI_INTERNALS__ or core modules
-                    if (window.__TAURI__ && window.__TAURI__.shell) {
-                        await window.__TAURI__.shell.open(fullUrl);
-                    } else if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke) {
-                        // Fallback: try using invoke directly
-                        await window.__TAURI_INTERNALS__.invoke('plugin:shell|open', { path: fullUrl });
-                    } else {
-                        throw new Error('Shell plugin not available');
-                    }
+                    // Use our custom Tauri command to open URL
+                    await window.invoke('open_url_in_browser', { url: fullUrl });
                 } catch (error) {
                     console.error('Failed to open URL:', error);
-                    customAlert(`Failed to open link: ${error.message || 'Shell plugin not available'}`, '❌ Error');
+                    customAlert(`Failed to open link: ${error}`, '❌ Error');
                 }
                 break;
             }
