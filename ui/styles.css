@@ -931,12 +931,6 @@ body {
     font-size: 0.6rem;
 }
 
-.calendar-events {
-    flex: 1;
-    overflow-y: auto;
-    margin-top: 0.25rem;
-}
-
 /* Todo count badge in calendar */
 .calendar-todo-badge {
     display: inline-block;

@@ -141,7 +141,7 @@ async function initApp() {
             });
         } catch (error) {
             // Migration failure is non-fatal, app continues normally
-            // Error details are logged in backend
+            console.error('Calendar event migration failed:', error);
         }
         
         // Load dark mode preference BEFORE setting up event listeners to avoid race condition
@@ -1058,11 +1058,6 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
         e.stopPropagation();
     });
     dayEl.appendChild(todoInput);
-    
-    // Events container (kept for styling compatibility, but no longer used for events)
-    const eventsContainer = document.createElement('div');
-    eventsContainer.className = 'calendar-events';
-    dayEl.appendChild(eventsContainer);
     
     // Add todo count badge if there are todos for this day
     const todoCount = calendarTodoCounts[dateStr];
