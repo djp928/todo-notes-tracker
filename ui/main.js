@@ -1561,8 +1561,38 @@ async function setupLinkHandling() {
             return;
         }
         
+        event.preventDefault();
+        
         const text = textarea.value;
-        const position = textarea.selectionStart;
+        
+        // Get character position from click coordinates
+        const rect = textarea.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        // Get scroll position
+        const scrollTop = textarea.scrollTop;
+        const scrollLeft = textarea.scrollLeft;
+        
+        // Approximate character position
+        const style = window.getComputedStyle(textarea);
+        const fontSize = parseFloat(style.fontSize);
+        const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
+        
+        // Estimate character width (monospace assumption)
+        const charWidth = fontSize * 0.6;
+        
+        // Calculate line and column
+        const line = Math.floor((y + scrollTop) / lineHeight);
+        const col = Math.floor((x + scrollLeft) / charWidth);
+        
+        // Convert to character position
+        const lines = text.split('\n');
+        let position = 0;
+        for (let i = 0; i < line && i < lines.length; i++) {
+            position += lines[i].length + 1; // +1 for newline
+        }
+        position += Math.min(col, lines[line]?.length || 0);
         
         // Find all URLs in the text
         const matches = [...text.matchAll(urlRegex)];
@@ -1573,18 +1603,25 @@ async function setupLinkHandling() {
             const urlEnd = match.index + match[0].length;
             
             if (position >= urlStart && position <= urlEnd) {
-                event.preventDefault();
                 const url = match[0];
                 
                 // Ensure URL has a protocol
                 const fullUrl = url.startsWith('http') ? url : `https://${url}`;
                 
                 try {
-                    // Use Tauri shell plugin to open URL in default browser
-                    await window.__TAURI__.shell.open(fullUrl);
+                    // Use Tauri shell plugin via the open command
+                    // In Tauri v2, plugins are accessed via __TAURI_INTERNALS__ or core modules
+                    if (window.__TAURI__ && window.__TAURI__.shell) {
+                        await window.__TAURI__.shell.open(fullUrl);
+                    } else if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke) {
+                        // Fallback: try using invoke directly
+                        await window.__TAURI_INTERNALS__.invoke('plugin:shell|open', { path: fullUrl });
+                    } else {
+                        throw new Error('Shell plugin not available');
+                    }
                 } catch (error) {
                     console.error('Failed to open URL:', error);
-                    customAlert(`Failed to open link: ${error.message}`, '❌ Error');
+                    customAlert(`Failed to open link: ${error.message || 'Shell plugin not available'}`, '❌ Error');
                 }
                 break;
             }
@@ -1592,7 +1629,9 @@ async function setupLinkHandling() {
     }
     
     // Add click handlers to both notes textareas
-    notesText.addEventListener('click', (e) => handleTextClick(e, notesText));
+    if (notesText) {
+        notesText.addEventListener('click', (e) => handleTextClick(e, notesText));
+    }
     
     // Also add handler to the edit todo notes textarea when modal is shown
     const editTodoNotes = document.getElementById('edit-todo-notes');
@@ -1612,19 +1651,25 @@ async function setupLinkHandling() {
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
         
-        // Approximate position in text based on mouse coordinates
-        // This is a simple heuristic - not pixel-perfect but good enough
-        const charWidth = 8; // Approximate character width
-        const lineHeight = 20; // Approximate line height
-        const col = Math.floor(x / charWidth);
-        const row = Math.floor(y / lineHeight);
-        const lines = text.split('\n');
+        // Get scroll position
+        const scrollTop = textarea.scrollTop;
+        const scrollLeft = textarea.scrollLeft;
         
+        // Approximate position
+        const style = window.getComputedStyle(textarea);
+        const fontSize = parseFloat(style.fontSize);
+        const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
+        const charWidth = fontSize * 0.6;
+        
+        const line = Math.floor((y + scrollTop) / lineHeight);
+        const col = Math.floor((x + scrollLeft) / charWidth);
+        
+        const lines = text.split('\n');
         let position = 0;
-        for (let i = 0; i < row && i < lines.length; i++) {
-            position += lines[i].length + 1; // +1 for newline
+        for (let i = 0; i < line && i < lines.length; i++) {
+            position += lines[i].length + 1;
         }
-        position += Math.min(col, lines[row]?.length || 0);
+        position += Math.min(col, lines[line]?.length || 0);
         
         // Check if hovering over a URL
         const matches = [...text.matchAll(urlRegex)];
@@ -1643,7 +1688,9 @@ async function setupLinkHandling() {
         textarea.style.cursor = overUrl ? 'pointer' : 'text';
     }
     
-    notesText.addEventListener('mousemove', (e) => handleTextHover(e, notesText));
+    if (notesText) {
+        notesText.addEventListener('mousemove', (e) => handleTextHover(e, notesText));
+    }
     if (editTodoNotes) {
         editTodoNotes.addEventListener('mousemove', (e) => handleTextHover(e, editTodoNotes));
     }
