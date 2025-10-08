@@ -220,42 +220,6 @@ async fn stop_pomodoro_timer() -> Result<(), String> {
     Ok(())
 }
 
-// Save calendar events to persistent storage
-#[tauri::command]
-async fn save_calendar_events(
-    events: HashMap<String, Vec<String>>,
-    data_dir: String,
-) -> Result<(), String> {
-    let file_path = PathBuf::from(data_dir).join("calendar_events.json");
-
-    let json_content = serde_json::to_string_pretty(&events)
-        .map_err(|e| format!("Failed to serialize calendar events: {}", e))?;
-
-    fs::write(&file_path, json_content)
-        .map_err(|e| format!("Failed to write calendar events file: {}", e))?;
-
-    Ok(())
-}
-
-// Load calendar events from persistent storage
-#[tauri::command]
-async fn load_calendar_events(data_dir: String) -> Result<HashMap<String, Vec<String>>, String> {
-    let file_path = PathBuf::from(data_dir).join("calendar_events.json");
-
-    if file_path.exists() {
-        let file_content = fs::read_to_string(&file_path)
-            .map_err(|e| format!("Failed to read calendar events file: {}", e))?;
-
-        let events: HashMap<String, Vec<String>> = serde_json::from_str(&file_content)
-            .map_err(|e| format!("Failed to parse calendar events: {}", e))?;
-
-        Ok(events)
-    } else {
-        // Return empty HashMap if file doesn't exist
-        Ok(HashMap::new())
-    }
-}
-
 /// Migrate calendar events to todos (one-time migration).
 ///
 /// This function performs a one-time migration of calendar events from the old
@@ -574,8 +538,6 @@ fn main() {
                 start_pomodoro_timer,
                 stop_pomodoro_timer,
                 send_notification,
-                save_calendar_events,
-                load_calendar_events,
                 migrate_calendar_events_to_todos,
                 save_dark_mode_preference,
                 load_dark_mode_preference,
@@ -823,80 +785,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_save_and_load_calendar_events() {
-        let temp_dir = setup_test_dir();
-        let data_dir = temp_dir.path().to_string_lossy().to_string();
-
-        // Create test calendar events
-        let mut events = HashMap::new();
-        events.insert(
-            "2024-01-15".to_string(),
-            vec!["Meeting".to_string(), "Lunch".to_string()],
-        );
-        events.insert("2024-01-16".to_string(), vec!["Dentist".to_string()]);
-
-        // Save calendar events
-        let save_result = save_calendar_events(events.clone(), data_dir.clone()).await;
-        assert!(save_result.is_ok());
-
-        // Load calendar events back
-        let load_result = load_calendar_events(data_dir).await;
-        assert!(load_result.is_ok());
-
-        let loaded_events = load_result.unwrap();
-        assert_eq!(loaded_events.len(), 2);
-        assert_eq!(
-            loaded_events.get("2024-01-15").unwrap(),
-            &vec!["Meeting".to_string(), "Lunch".to_string()]
-        );
-        assert_eq!(
-            loaded_events.get("2024-01-16").unwrap(),
-            &vec!["Dentist".to_string()]
-        );
-    }
-
-    #[tokio::test]
-    async fn test_load_nonexistent_calendar_events() {
-        let temp_dir = setup_test_dir();
-        let data_dir = temp_dir.path().to_string_lossy().to_string();
-
-        // Try to load calendar events from empty directory
-        let result = load_calendar_events(data_dir).await;
-        assert!(result.is_ok());
-
-        let events = result.unwrap();
-        assert!(events.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_calendar_events_persistence() {
-        let temp_dir = setup_test_dir();
-        let data_dir = temp_dir.path().to_string_lossy().to_string();
-
-        // Save some events
-        let mut events1 = HashMap::new();
-        events1.insert("2024-01-15".to_string(), vec!["Event 1".to_string()]);
-        save_calendar_events(events1, data_dir.clone())
-            .await
-            .unwrap();
-
-        // Load and modify
-        let mut loaded_events = load_calendar_events(data_dir.clone()).await.unwrap();
-        loaded_events.insert("2024-01-16".to_string(), vec!["Event 2".to_string()]);
-
-        // Save modified events
-        save_calendar_events(loaded_events.clone(), data_dir.clone())
-            .await
-            .unwrap();
-
-        // Load again and verify
-        let final_events = load_calendar_events(data_dir).await.unwrap();
-        assert_eq!(final_events.len(), 2);
-        assert!(final_events.contains_key("2024-01-15"));
-        assert!(final_events.contains_key("2024-01-16"));
-    }
-
-    #[tokio::test]
     async fn test_migrate_calendar_events_no_file() {
         let temp_dir = setup_test_dir();
         let data_dir = temp_dir.path().to_string_lossy().to_string();
@@ -913,9 +801,11 @@ mod tests {
         let temp_dir = setup_test_dir();
         let data_dir = temp_dir.path().to_string_lossy().to_string();
         
-        // Create empty calendar events file
+        // Create empty calendar events file directly
         let empty_events: HashMap<String, Vec<String>> = HashMap::new();
-        save_calendar_events(empty_events, data_dir.clone()).await.unwrap();
+        let file_path = temp_dir.path().join("calendar_events.json");
+        let json_content = serde_json::to_string_pretty(&empty_events).unwrap();
+        fs::write(&file_path, json_content).unwrap();
         
         // Run migration
         let result = migrate_calendar_events_to_todos(data_dir.clone()).await;
@@ -928,8 +818,7 @@ mod tests {
         assert!(backup_path.exists());
         
         // Verify original was removed
-        let original_path = temp_dir.path().join("calendar_events.json");
-        assert!(!original_path.exists());
+        assert!(!file_path.exists());
     }
 
     #[tokio::test]
@@ -937,7 +826,7 @@ mod tests {
         let temp_dir = setup_test_dir();
         let data_dir = temp_dir.path().to_string_lossy().to_string();
         
-        // Create calendar events
+        // Create calendar events file directly
         let mut events = HashMap::new();
         events.insert("2024-01-15".to_string(), vec![
             "Meeting at 2pm".to_string(),
@@ -947,7 +836,10 @@ mod tests {
             "Submit report".to_string(),
         ]);
         
-        save_calendar_events(events, data_dir.clone()).await.unwrap();
+        // Write events file directly
+        let file_path = temp_dir.path().join("calendar_events.json");
+        let json_content = serde_json::to_string_pretty(&events).unwrap();
+        fs::write(&file_path, json_content).unwrap();
         
         // Run migration
         let result = migrate_calendar_events_to_todos(data_dir.clone()).await;
@@ -1002,14 +894,16 @@ mod tests {
         
         save_day_data(existing_day, data_dir.clone()).await.unwrap();
         
-        // Create calendar events
+        // Create calendar events file directly
         let mut events = HashMap::new();
         events.insert("2024-01-15".to_string(), vec![
             "Calendar event 1".to_string(),
             "Calendar event 2".to_string(),
         ]);
         
-        save_calendar_events(events, data_dir.clone()).await.unwrap();
+        let file_path = temp_dir.path().join("calendar_events.json");
+        let json_content = serde_json::to_string_pretty(&events).unwrap();
+        fs::write(&file_path, json_content).unwrap();
         
         // Run migration
         let result = migrate_calendar_events_to_todos(data_dir.clone()).await;
