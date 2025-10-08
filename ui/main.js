@@ -1561,7 +1561,6 @@ async function setupLinkHandling() {
             return;
         }
         
-        console.log('Link click handler triggered on:', textarea.id);
         event.preventDefault();
         
         const text = textarea.value;
@@ -1580,8 +1579,8 @@ async function setupLinkHandling() {
         const fontSize = parseFloat(style.fontSize);
         const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
         
-        // Estimate character width (monospace assumption)
-        const charWidth = fontSize * 0.6;
+        // Estimate character width - use a more accurate calculation
+        const charWidth = fontSize * 0.55; // Slightly smaller for better accuracy
         
         // Calculate line and column
         const line = Math.floor((y + scrollTop) / lineHeight);
@@ -1595,26 +1594,22 @@ async function setupLinkHandling() {
         }
         position += Math.min(col, lines[line]?.length || 0);
         
-        console.log('Calculated position:', position, 'Line:', line, 'Col:', col);
-        
         // Find all URLs in the text
         const matches = [...text.matchAll(urlRegex)];
-        console.log('Found URLs:', matches.length);
         
-        // Check if click position is within a URL
+        // Check if click position is within or very close to a URL
+        // Add a small tolerance (±3 characters) for imprecise clicking
+        const tolerance = 3;
         for (const match of matches) {
             const urlStart = match.index;
             const urlEnd = match.index + match[0].length;
             
-            console.log('Checking URL:', match[0], 'Range:', urlStart, '-', urlEnd);
-            
-            if (position >= urlStart && position <= urlEnd) {
+            // Check if position is within the URL (with tolerance)
+            if (position >= urlStart - tolerance && position <= urlEnd + tolerance) {
                 const url = match[0];
                 
                 // Ensure URL has a protocol
                 const fullUrl = url.startsWith('http') ? url : `https://${url}`;
-                
-                console.log('Opening URL:', fullUrl);
                 
                 try {
                     // Use our custom Tauri command to open URL
