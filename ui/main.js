@@ -253,9 +253,11 @@ function setupEventListeners() {
         }
     });
     
-    document.addEventListener('click', (e) => {
+    // Use mousedown instead of click to avoid conflicts with calendar day clicks
+    document.addEventListener('mousedown', (e) => {
         // If clicking outside calendar grid, hide all event inputs
         const calendarGrid = document.getElementById('calendar-grid');
+        // Check if the click is outside the calendar AND not on a calendar day
         if (calendarGrid && !calendarGrid.contains(e.target)) {
             const allDays = document.querySelectorAll('.calendar-day.show-input');
             allDays.forEach(day => day.classList.remove('show-input'));
@@ -999,7 +1001,11 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
             if (document.activeElement !== eventInput) {
                 dayEl.classList.remove('show-input');
             }
-        }, 100);
+        }, 150); // Increased delay for better reliability
+    });
+    // Prevent clicks on input from propagating to day click handler
+    eventInput.addEventListener('click', (e) => {
+        e.stopPropagation();
     });
     dayEl.appendChild(eventInput);
     
@@ -1013,6 +1019,9 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
     
     // Click handler to navigate to this day and show input
     dayEl.addEventListener('click', (e) => {
+        // Stop propagation to prevent document click handler from firing
+        e.stopPropagation();
+        
         // If clicking on the input itself, let it handle normally
         if (e.target === eventInput) {
             return;
