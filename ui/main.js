@@ -243,6 +243,25 @@ function setupEventListeners() {
     // Keyboard shortcuts for zoom
     document.addEventListener('keydown', handleZoomKeyboard);
     
+    // Calendar input: hide when pressing ESC or clicking outside
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const activeDay = document.querySelector('.calendar-day.show-input');
+            if (activeDay) {
+                activeDay.classList.remove('show-input');
+            }
+        }
+    });
+    
+    document.addEventListener('click', (e) => {
+        // If clicking outside calendar grid, hide all event inputs
+        const calendarGrid = document.getElementById('calendar-grid');
+        if (calendarGrid && !calendarGrid.contains(e.target)) {
+            const allDays = document.querySelectorAll('.calendar-day.show-input');
+            allDays.forEach(day => day.classList.remove('show-input'));
+        }
+    });
+    
     // Dark mode toggle
     if (darkModeToggleBtn) {
         darkModeToggleBtn.addEventListener('click', () => {
@@ -969,7 +988,18 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
         if (e.key === 'Enter' && eventInput.value.trim()) {
             addCalendarEvent(date, eventInput.value.trim());
             eventInput.value = '';
+            // Keep the input visible and focused so user can add more events
+            eventInput.focus();
         }
+    });
+    eventInput.addEventListener('blur', (e) => {
+        // Hide input when it loses focus, but with a small delay
+        // to allow clicking on the input again without it hiding
+        setTimeout(() => {
+            if (document.activeElement !== eventInput) {
+                dayEl.classList.remove('show-input');
+            }
+        }, 100);
     });
     dayEl.appendChild(eventInput);
     
@@ -981,11 +1011,40 @@ function createCalendarDay(date, today, todayStr, currentDateStr) {
     // Load existing events for this day
     loadCalendarEventsForDay(dateStr, eventsContainer);
     
-    // Click handler to navigate to this day
+    // Click handler to navigate to this day and show input
     dayEl.addEventListener('click', (e) => {
-        if (e.target !== eventInput) {
-            navigateToDate(date);
+        // If clicking on the input itself, let it handle normally
+        if (e.target === eventInput) {
+            return;
         }
+        
+        // If clicking on an event, let it handle normally
+        if (e.target.classList.contains('calendar-event')) {
+            return;
+        }
+        
+        // Remove show-input class from all other days
+        const allDays = document.querySelectorAll('.calendar-day');
+        allDays.forEach(day => {
+            if (day !== dayEl) {
+                day.classList.remove('show-input');
+            }
+        });
+        
+        // Toggle show-input class on this day
+        const hadInput = dayEl.classList.contains('show-input');
+        dayEl.classList.toggle('show-input');
+        
+        // If we just showed the input, focus it
+        if (!hadInput) {
+            // Small delay to ensure display:block takes effect before focusing
+            setTimeout(() => {
+                eventInput.focus();
+            }, 50);
+        }
+        
+        // Navigate to this day
+        navigateToDate(date);
     });
     
     return dayEl;
