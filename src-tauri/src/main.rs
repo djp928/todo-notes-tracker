@@ -444,10 +444,10 @@ fn get_app_version() -> String {
 /// Ok(()) if successful, error message if failed
 #[tauri::command]
 async fn open_url_in_browser(url: String, app: tauri::AppHandle) -> Result<(), String> {
-    use tauri_plugin_shell::ShellExt;
+    use tauri_plugin_opener::OpenerExt;
     
-    app.shell()
-        .open(url, None)
+    app.opener()
+        .open_url(url, None::<&str>)
         .map_err(|e| format!("Failed to open URL: {}", e))?;
     
     Ok(())
@@ -558,7 +558,7 @@ fn main() {
     #[cfg(not(test))]
     {
         tauri::Builder::default()
-            .plugin(tauri_plugin_shell::init())
+            .plugin(tauri_plugin_opener::init())
             .invoke_handler(tauri::generate_handler![
                 get_app_data_dir,
                 load_day_data,
