@@ -330,6 +330,21 @@ function createTodoElement(todo, index) {
         selectTodo(index);
     });
     
+    // Add double-click handler to edit todo
+    todoText.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        editTodo(index);
+    });
+    
+    // Add notes indicator if todo has notes
+    if (todo.notes && todo.notes.trim()) {
+        const notesIndicator = document.createElement('span');
+        notesIndicator.className = 'notes-indicator';
+        notesIndicator.textContent = '📝';
+        notesIndicator.title = 'This task has notes';
+        todoText.appendChild(notesIndicator);
+    }
+    
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'todo-actions';
     
@@ -409,6 +424,108 @@ async function addTodo() {
         console.error('Failed to add todo:', error);
         alert('Failed to add todo: ' + error.message);
     }
+}
+
+/**
+ * Opens a modal dialog to edit a todo item's text and notes.
+ * 
+ * @param {number} index - The index of the todo item in the currentDayData.todos array
+ * 
+ * @description
+ * This function displays a modal dialog allowing the user to edit both the todo text
+ * and per-item notes. The modal supports:
+ * - Text editing with validation (prevents empty text)
+ * - Multiline notes with whitespace trimming
+ * - Keyboard shortcuts: Ctrl+Enter to save, ESC to cancel
+ * - Click outside modal to close (UX enhancement)
+ * - Proper event cleanup to prevent memory leaks
+ * 
+ * @example
+ * // Edit the first todo item
+ * editTodo(0);
+ * 
+ * @requires customAlert - For validation error messages
+ * @requires renderTodoList - To update UI after changes
+ * @requires saveDayData - To persist changes to storage
+ * 
+ * @throws {Error} Implicitly if modal elements are not found in DOM
+ */
+function editTodo(index) {
+    const todo = currentDayData.todos[index];
+    
+    // Get modal elements
+    const modal = document.getElementById('edit-todo-modal');
+    const textInput = document.getElementById('edit-todo-text');
+    const notesTextarea = document.getElementById('edit-todo-notes');
+    const saveBtn = document.getElementById('edit-todo-save');
+    const cancelBtn = document.getElementById('edit-todo-cancel');
+    
+    // Populate modal with current values
+    textInput.value = todo.text;
+    notesTextarea.value = todo.notes || '';
+    
+    // Show modal
+    modal.classList.remove('hidden');
+    textInput.focus();
+    textInput.select();
+    
+    // Handle save
+    const handleSave = () => {
+        const newText = textInput.value.trim();
+        const newNotes = notesTextarea.value.trim();
+        
+        if (!newText) {
+            customAlert('Task text cannot be empty!', '⚠️ Validation Error');
+            return;
+        }
+        
+        // Update todo
+        todo.text = newText;
+        todo.notes = newNotes;
+        
+        // Close modal and update UI
+        modal.classList.add('hidden');
+        cleanup();
+        renderTodoList();
+        saveDayData();
+    };
+    
+    // Handle cancel
+    const handleCancel = () => {
+        modal.classList.add('hidden');
+        cleanup();
+    };
+    
+    // Handle ESC key (same as cancel)
+    const handleEsc = (e) => {
+        if (e.key === 'Escape') {
+            modal.classList.add('hidden');
+            cleanup();
+        } else if (e.key === 'Enter' && e.ctrlKey) {
+            // Ctrl+Enter to save
+            handleSave();
+        }
+    };
+    
+    // Handle click outside modal to close (UX enhancement)
+    const handleOutsideClick = (e) => {
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+            cleanup();
+        }
+    };
+    
+    const cleanup = () => {
+        saveBtn.removeEventListener('click', handleSave);
+        cancelBtn.removeEventListener('click', handleCancel);
+        document.removeEventListener('keydown', handleEsc);
+        modal.removeEventListener('click', handleOutsideClick);
+    };
+    
+    saveBtn.addEventListener('click', handleSave);
+    cancelBtn.addEventListener('click', handleCancel);
+    document.addEventListener('keydown', handleEsc);
+    modal.addEventListener('click', handleOutsideClick);
 }
 
 // Toggle todo completion

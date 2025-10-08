@@ -131,6 +131,29 @@
                     </div>
                 </div>
 
+                <!-- Edit Todo Modal -->
+                <div id="edit-todo-modal" class="modal hidden">
+                    <div class="modal-content modal-content-large">
+                        <div class="modal-header">
+                            <h3>✏️ Edit Todo</h3>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="edit-todo-text">Task:</label>
+                                <input type="text" id="edit-todo-text" class="form-input" placeholder="Enter todo text..." />
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-todo-notes">Notes:</label>
+                                <textarea id="edit-todo-notes" class="form-textarea" rows="8" placeholder="Add notes for this task..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button id="edit-todo-save" class="modal-btn modal-btn-primary">Save</button>
+                            <button id="edit-todo-cancel" class="modal-btn modal-btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Pomodoro Timer Overlay -->
                 <div id="pomodoro-overlay" class="pomodoro-overlay hidden">
                     <div class="timer-display">
