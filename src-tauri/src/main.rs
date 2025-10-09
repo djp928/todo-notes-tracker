@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use tauri::{Emitter, Manager, Window};
+use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_opener::OpenerExt;
 use uuid::Uuid;
 
@@ -456,6 +457,125 @@ async fn open_url_in_browser(url: String, app: tauri::AppHandle) -> Result<(), S
     Ok(())
 }
 
+/// Show a system notification for Pomodoro timer completion.
+///
+/// This creates a native system notification that appears even when the app
+/// is in the background, minimized, or on a different workspace/desktop.
+/// The notification includes a system sound to alert the user audibly.
+///
+/// # Arguments
+/// * `app` - The Tauri app handle (automatically injected by Tauri)
+/// * `task_name` - The name of the task that was completed
+///
+/// # Returns
+/// Ok(()) if notification was shown successfully, error message if failed
+///
+/// # Platform Behavior
+/// - **macOS**: Shows in Notification Center, plays "default" system sound, may request permission on first use
+/// - **Windows**: Shows in Windows notification system, plays system sound
+/// - **Linux**: Shows via libnotify/D-Bus, plays system sound (if notification daemon is available)
+///
+/// # Sound Configuration
+/// Uses the system's "default" notification sound. Platform-specific sounds:
+/// - **macOS**: System sounds like "Ping", "Blow", "Hero" (currently set to "default")
+/// - **Windows**: .wav files can be specified
+/// - **Linux**: XDG theme sounds like "message-new-instant"
+///
+/// # Errors
+/// Returns an error if:
+/// - Permission is denied (macOS)
+/// - No notification daemon is available (Linux)
+/// - System notification API fails
+///
+/// # Examples
+/// ```javascript
+/// // From frontend
+/// await window.invoke('show_pomodoro_notification', {
+///     taskName: 'Write documentation'
+/// });
+/// ```
+#[tauri::command]
+async fn show_pomodoro_notification(
+    app: tauri::AppHandle,
+    task_name: String,
+) -> Result<(), String> {
+    app.notification()
+        .builder()
+        .title("🍅 Pomodoro Complete!")
+        .body(format!(
+            "Task: {}\n\nGreat job! Time for a well-deserved break! 🎉",
+            task_name
+        ))
+        .sound("default")
+        .show()
+        .map_err(|e| format!("Failed to show notification: {}", e))?;
+
+    Ok(())
+}
+
+/// Bring the application window to focus.
+///
+/// This command brings the main application window to the foreground and gives it focus.
+/// On macOS, it also makes the dock icon bounce to draw attention.
+/// If the window is minimized, it will be unminimized first.
+/// Useful for when the Pomodoro timer completes and the user needs to interact with the app.
+///
+/// # Arguments
+/// * `app` - The Tauri app handle (automatically injected by Tauri)
+///
+/// # Returns
+/// Ok(()) if window was focused successfully, error message if failed
+///
+/// # Platform Behavior
+/// - **macOS**: Unminimizes if needed, requests user attention (dock icon bounces), brings to front
+/// - **Windows**: Unminimizes if needed, flashes taskbar, brings to front and sets focus
+/// - **Linux**: Unminimizes if needed, requests attention, brings to front (WM-dependent)
+///
+/// # Errors
+/// Returns an error if:
+/// - Main window cannot be found
+/// - Window focus operation fails
+///
+/// # Examples
+/// ```javascript
+/// // From frontend
+/// await window.invoke('focus_app_window');
+/// ```
+#[tauri::command]
+async fn focus_app_window(app: tauri::AppHandle) -> Result<(), String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or("Main window not found")?;
+
+    // Check if window is minimized and unminimize if needed
+    let is_minimized = window
+        .is_minimized()
+        .map_err(|e| format!("Failed to check minimized state: {}", e))?;
+
+    if is_minimized {
+        window
+            .unminimize()
+            .map_err(|e| format!("Failed to unminimize window: {}", e))?;
+    }
+
+    // Request user attention (makes dock icon bounce on macOS, flashes taskbar on Windows)
+    window
+        .request_user_attention(Some(tauri::UserAttentionType::Critical))
+        .map_err(|e| format!("Failed to request attention: {}", e))?;
+
+    // Show the window (ensure it's visible)
+    window
+        .show()
+        .map_err(|e| format!("Failed to show window: {}", e))?;
+
+    // Bring window to front and focus
+    window
+        .set_focus()
+        .map_err(|e| format!("Failed to focus window: {}", e))?;
+
+    Ok(())
+}
+
 /// Internal helper: Save zoom preference to a file path
 ///
 /// This function is extracted for testing purposes.
@@ -562,6 +682,7 @@ fn main() {
     {
         tauri::Builder::default()
             .plugin(tauri_plugin_opener::init())
+            .plugin(tauri_plugin_notification::init())
             .invoke_handler(tauri::generate_handler![
                 get_app_data_dir,
                 load_day_data,
@@ -577,7 +698,9 @@ fn main() {
                 load_zoom_preference,
                 get_zoom_limits,
                 get_app_version,
-                open_url_in_browser
+                open_url_in_browser,
+                show_pomodoro_notification,
+                focus_app_window
             ])
             .run(tauri::generate_context!())
             .expect("error while running tauri application");

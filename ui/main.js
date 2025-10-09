@@ -766,6 +766,27 @@ function startCountdown(totalSeconds) {
             // Hide timer overlay
             pomodoroOverlay.classList.add('hidden');
             
+            // Get task name for notification
+            const taskName = selectedTodo !== null && currentDayData.todos[selectedTodo]
+                ? currentDayData.todos[selectedTodo].text 
+                : "Pomodoro session";
+            
+            // Show system notification and bring window to focus
+            (async () => {
+                try {
+                    await window.invoke('show_pomodoro_notification', { 
+                        taskName: taskName 
+                    });
+                    
+                    // Immediately focus the window after showing notification
+                    await window.invoke('focus_app_window').catch(() => {
+                        // Focus failure is handled gracefully - app continues with visual feedback
+                    });
+                } catch (error) {
+                    // Notification failure is handled gracefully - app continues with visual feedback
+                }
+            })();
+            
             // Title flash
             const originalTitle = document.title;
             document.title = '🍅 TIMER DONE! 🍅';
