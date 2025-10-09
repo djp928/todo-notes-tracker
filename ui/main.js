@@ -779,17 +779,11 @@ function startCountdown(totalSeconds) {
                     });
                     
                     // Immediately focus the window after showing notification
-                    // This ensures the app is ready for user interaction
-                    try {
-                        await window.invoke('focus_app_window');
-                    } catch (focusError) {
-                        // Error logging is intentional: helps diagnose focus issues on different platforms
-                        console.error('Failed to focus window:', focusError);
-                    }
+                    await window.invoke('focus_app_window').catch(() => {
+                        // Focus failure is handled gracefully - app continues with visual feedback
+                    });
                 } catch (error) {
-                    // Error logging is intentional: notification failures need to be visible for debugging
-                    console.error('Failed to show notification:', error);
-                    // Notification failed, but continue with other alerts
+                    // Notification failure is handled gracefully - app continues with visual feedback
                 }
             })();
             

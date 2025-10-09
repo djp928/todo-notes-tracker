@@ -449,7 +449,7 @@ fn get_app_version() -> String {
 /// This uses tauri-plugin-opener v2.5.0's OpenerExt trait.
 /// The API is `app.opener().open_url()` which is the correct method for this plugin version.
 #[tauri::command]
-async fn open_url_in_browser(app: tauri::AppHandle, url: String) -> Result<(), String> {
+async fn open_url_in_browser(url: String, app: tauri::AppHandle) -> Result<(), String> {
     app.opener()
         .open_url(url, None::<&str>)
         .map_err(|e| format!("Failed to open URL: {}", e))?;
