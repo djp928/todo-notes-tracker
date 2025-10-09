@@ -511,6 +511,45 @@ async fn show_pomodoro_notification(
     Ok(())
 }
 
+/// Bring the application window to focus.
+///
+/// This command brings the main application window to the foreground and gives it focus.
+/// Useful for when the user clicks on a notification and expects the app to appear.
+///
+/// # Arguments
+/// * `app` - The Tauri app handle (automatically injected by Tauri)
+///
+/// # Returns
+/// Ok(()) if window was focused successfully, error message if failed
+///
+/// # Platform Behavior
+/// - **macOS**: Brings window to front and activates the application
+/// - **Windows**: Brings window to front and sets focus
+/// - **Linux**: Brings window to front (behavior depends on window manager)
+///
+/// # Errors
+/// Returns an error if:
+/// - Main window cannot be found
+/// - Window focus operation fails
+///
+/// # Examples
+/// ```javascript
+/// // From frontend
+/// await window.invoke('focus_app_window');
+/// ```
+#[tauri::command]
+async fn focus_app_window(app: tauri::AppHandle) -> Result<(), String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or("Main window not found")?;
+
+    window
+        .set_focus()
+        .map_err(|e| format!("Failed to focus window: {}", e))?;
+
+    Ok(())
+}
+
 /// Internal helper: Save zoom preference to a file path
 ///
 /// This function is extracted for testing purposes.
@@ -634,7 +673,8 @@ fn main() {
                 get_zoom_limits,
                 get_app_version,
                 open_url_in_browser,
-                show_pomodoro_notification
+                show_pomodoro_notification,
+                focus_app_window
             ])
             .run(tauri::generate_context!())
             .expect("error while running tauri application");
