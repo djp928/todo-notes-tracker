@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Linux: Notifications appear via system notification daemon with sound
 - Notification includes task name and encouraging message
 - Audio alert via system notification sound ensures users never miss timer completion
-- Clicking notification brings app window to focus automatically on all platforms
+- App automatically brings itself to focus when timer completes - dock icon bounces (macOS) and window comes to foreground
 
 ## [1.6.0] - 2025-01-08
 

@@ -171,9 +171,6 @@ async function initApp() {
         // Setup clickable links in notes
         await setupLinkHandling();
         
-        // Setup notification click handler to focus app
-        await setupNotificationClickHandler();
-        
     } catch (error) {
         console.error('Failed to initialize app:', error);
         customAlert('Failed to initialize the application. Please try restarting.\n\nError: ' + error.message, '❌ Initialization Error');
@@ -774,12 +771,20 @@ function startCountdown(totalSeconds) {
                 ? currentDayData.todos[selectedTodo].text 
                 : "Pomodoro session";
             
-            // Show system notification
+            // Show system notification and bring window to focus
             (async () => {
                 try {
                     await window.invoke('show_pomodoro_notification', { 
                         taskName: taskName 
                     });
+                    
+                    // Immediately focus the window after showing notification
+                    // This ensures the app is ready for user interaction
+                    try {
+                        await window.invoke('focus_app_window');
+                    } catch (focusError) {
+                        console.error('Failed to focus window:', focusError);
+                    }
                 } catch (error) {
                     console.error('Failed to show notification:', error);
                     // Notification failed, but continue with other alerts
@@ -1716,50 +1721,6 @@ async function setupLinkHandling() {
     }
     if (editTodoNotes) {
         editTodoNotes.addEventListener('mousemove', (e) => handleTextHover(e, editTodoNotes));
-    }
-}
-
-/**
- * Setup notification click handler to bring app to focus.
- * 
- * This function registers a listener for notification actions (clicks) using the
- * tauri-plugin-notification API. When a user clicks on a notification, the app
- * window is brought to the foreground.
- * 
- * @description
- * Uses the notification plugin's onAction event listener to detect when users
- * interact with system notifications. Currently focuses the window on any
- * notification click, but could be extended to handle specific actions.
- * 
- * @async
- * @returns {Promise<void>}
- * 
- * @example
- * // Called during app initialization
- * await setupNotificationClickHandler();
- * 
- * @requires window.__TAURI__.notification - Tauri notification plugin API
- * @requires window.invoke - Tauri invoke API for calling backend commands
- */
-async function setupNotificationClickHandler() {
-    try {
-        // Check if notification plugin is available
-        if (!window.__TAURI__ || !window.__TAURI__.notification) {
-            console.error('Notification plugin not available');
-            return;
-        }
-        
-        // Register listener for notification actions (clicks)
-        await window.__TAURI__.notification.onAction((notification) => {
-            // When user clicks notification, bring app to focus
-            window.invoke('focus_app_window').catch(error => {
-                console.error('Failed to focus window from notification click:', error);
-            });
-        });
-        
-    } catch (error) {
-        console.error('Failed to setup notification click handler:', error);
-        // Non-fatal error - app continues without this feature
     }
 }
 

@@ -514,7 +514,8 @@ async fn show_pomodoro_notification(
 /// Bring the application window to focus.
 ///
 /// This command brings the main application window to the foreground and gives it focus.
-/// Useful for when the user clicks on a notification and expects the app to appear.
+/// On macOS, it also makes the dock icon bounce to draw attention.
+/// Useful for when the Pomodoro timer completes and the user needs to interact with the app.
 ///
 /// # Arguments
 /// * `app` - The Tauri app handle (automatically injected by Tauri)
@@ -523,9 +524,9 @@ async fn show_pomodoro_notification(
 /// Ok(()) if window was focused successfully, error message if failed
 ///
 /// # Platform Behavior
-/// - **macOS**: Brings window to front and activates the application
-/// - **Windows**: Brings window to front and sets focus
-/// - **Linux**: Brings window to front (behavior depends on window manager)
+/// - **macOS**: Requests user attention (dock icon bounces), then brings window to front and activates
+/// - **Windows**: Flashes taskbar, then brings window to front and sets focus
+/// - **Linux**: Requests attention and brings window to front (behavior depends on window manager)
 ///
 /// # Errors
 /// Returns an error if:
@@ -543,6 +544,12 @@ async fn focus_app_window(app: tauri::AppHandle) -> Result<(), String> {
         .get_webview_window("main")
         .ok_or("Main window not found")?;
 
+    // Request user attention (makes dock icon bounce on macOS, flashes taskbar on Windows)
+    window
+        .request_user_attention(Some(tauri::UserAttentionType::Critical))
+        .map_err(|e| format!("Failed to request attention: {}", e))?;
+
+    // Bring window to front and focus
     window
         .set_focus()
         .map_err(|e| format!("Failed to focus window: {}", e))?;
