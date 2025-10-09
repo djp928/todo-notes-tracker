@@ -663,6 +663,10 @@ async function navigateDay(offset) {
     selectedTodo = null;
     
     await loadDayData(currentDate);
+    
+    // Update calendar view to match the new date
+    calendarDate = new Date(currentDate);
+    await updateCalendar();
 }
 
 // Go to today
@@ -673,6 +677,10 @@ async function goToToday() {
     selectedTodo = null;
     
     await loadDayData(currentDate);
+    
+    // Update calendar view to match today
+    calendarDate = new Date(currentDate);
+    await updateCalendar();
 }
 
 // Update pomodoro button state

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Calendar highlight now syncs with todo panel navigation - when using Previous/Next Day or Today buttons, the calendar panel automatically updates to show and highlight the selected day
+
 ## [1.6.0] - 2025-01-08
 
 ### Added
