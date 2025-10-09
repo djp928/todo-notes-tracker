@@ -515,6 +515,7 @@ async fn show_pomodoro_notification(
 ///
 /// This command brings the main application window to the foreground and gives it focus.
 /// On macOS, it also makes the dock icon bounce to draw attention.
+/// If the window is minimized, it will be unminimized first.
 /// Useful for when the Pomodoro timer completes and the user needs to interact with the app.
 ///
 /// # Arguments
@@ -524,9 +525,9 @@ async fn show_pomodoro_notification(
 /// Ok(()) if window was focused successfully, error message if failed
 ///
 /// # Platform Behavior
-/// - **macOS**: Requests user attention (dock icon bounces), then brings window to front and activates
-/// - **Windows**: Flashes taskbar, then brings window to front and sets focus
-/// - **Linux**: Requests attention and brings window to front (behavior depends on window manager)
+/// - **macOS**: Unminimizes if needed, requests user attention (dock icon bounces), brings to front
+/// - **Windows**: Unminimizes if needed, flashes taskbar, brings to front and sets focus
+/// - **Linux**: Unminimizes if needed, requests attention, brings to front (WM-dependent)
 ///
 /// # Errors
 /// Returns an error if:
@@ -544,10 +545,26 @@ async fn focus_app_window(app: tauri::AppHandle) -> Result<(), String> {
         .get_webview_window("main")
         .ok_or("Main window not found")?;
 
+    // Check if window is minimized and unminimize if needed
+    let is_minimized = window
+        .is_minimized()
+        .map_err(|e| format!("Failed to check minimized state: {}", e))?;
+
+    if is_minimized {
+        window
+            .unminimize()
+            .map_err(|e| format!("Failed to unminimize window: {}", e))?;
+    }
+
     // Request user attention (makes dock icon bounce on macOS, flashes taskbar on Windows)
     window
         .request_user_attention(Some(tauri::UserAttentionType::Critical))
         .map_err(|e| format!("Failed to request attention: {}", e))?;
+
+    // Show the window (ensure it's visible)
+    window
+        .show()
+        .map_err(|e| format!("Failed to show window: {}", e))?;
 
     // Bring window to front and focus
     window
