@@ -452,7 +452,9 @@ fn get_app_version() -> String {
 async fn open_url_in_browser(app: tauri::AppHandle, url: String) -> Result<(), String> {
     app.opener()
         .open_url(url, None::<&str>)
-        .map_err(|e| format!("Failed to open URL: {}", e))
+        .map_err(|e| format!("Failed to open URL: {}", e))?;
+
+    Ok(())
 }
 
 /// Show a system notification for Pomodoro timer completion.

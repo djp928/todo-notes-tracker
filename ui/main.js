@@ -783,9 +783,11 @@ function startCountdown(totalSeconds) {
                     try {
                         await window.invoke('focus_app_window');
                     } catch (focusError) {
+                        // Error logging is intentional: helps diagnose focus issues on different platforms
                         console.error('Failed to focus window:', focusError);
                     }
                 } catch (error) {
+                    // Error logging is intentional: notification failures need to be visible for debugging
                     console.error('Failed to show notification:', error);
                     // Notification failed, but continue with other alerts
                 }
