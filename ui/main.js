@@ -766,6 +766,23 @@ function startCountdown(totalSeconds) {
             // Hide timer overlay
             pomodoroOverlay.classList.add('hidden');
             
+            // Get task name for notification
+            const taskName = selectedTodo !== null && currentDayData.todos[selectedTodo]
+                ? currentDayData.todos[selectedTodo].text 
+                : "Pomodoro session";
+            
+            // Show system notification
+            (async () => {
+                try {
+                    await window.invoke('show_pomodoro_notification', { 
+                        taskName: taskName 
+                    });
+                } catch (error) {
+                    console.error('Failed to show notification:', error);
+                    // Notification failed, but continue with other alerts
+                }
+            })();
+            
             // Title flash
             const originalTitle = document.title;
             document.title = '🍅 TIMER DONE! 🍅';

@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Calendar highlight now syncs with todo panel navigation - when using Previous/Next Day or Today buttons, the calendar panel automatically updates to show and highlight the selected day
+- System notifications for Pomodoro timer completion - notifications appear even when app is minimized or in background
+  - macOS: Notifications appear in Notification Center with sound
+  - Windows: Notifications appear in Windows notification system with sound
+  - Linux: Notifications appear via system notification daemon with sound
+- Notification includes task name and encouraging message
 
 ## [1.6.0] - 2025-01-08
 

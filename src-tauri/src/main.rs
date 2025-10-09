@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use tauri::{Emitter, Manager, Window};
+use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_opener::OpenerExt;
 use uuid::Uuid;
 
@@ -448,10 +449,56 @@ fn get_app_version() -> String {
 /// This uses tauri-plugin-opener v2.5.0's OpenerExt trait.
 /// The API is `app.opener().open_url()` which is the correct method for this plugin version.
 #[tauri::command]
-async fn open_url_in_browser(url: String, app: tauri::AppHandle) -> Result<(), String> {
+async fn open_url_in_browser(app: tauri::AppHandle, url: String) -> Result<(), String> {
     app.opener()
         .open_url(url, None::<&str>)
-        .map_err(|e| format!("Failed to open URL: {}", e))?;
+        .map_err(|e| format!("Failed to open URL: {}", e))
+}
+
+/// Show a system notification for Pomodoro timer completion.
+///
+/// This creates a native system notification that appears even when the app
+/// is in the background, minimized, or on a different workspace/desktop.
+///
+/// # Arguments
+/// * `app` - The Tauri app handle (automatically injected by Tauri)
+/// * `task_name` - The name of the task that was completed
+///
+/// # Returns
+/// Ok(()) if notification was shown successfully, error message if failed
+///
+/// # Platform Behavior
+/// - **macOS**: Shows in Notification Center, plays system sound, may request permission on first use
+/// - **Windows**: Shows in Windows notification system, plays system sound
+/// - **Linux**: Shows via libnotify/D-Bus, plays system sound (if notification daemon is available)
+///
+/// # Errors
+/// Returns an error if:
+/// - Permission is denied (macOS)
+/// - No notification daemon is available (Linux)
+/// - System notification API fails
+///
+/// # Examples
+/// ```javascript
+/// // From frontend
+/// await window.invoke('show_pomodoro_notification', {
+///     taskName: 'Write documentation'
+/// });
+/// ```
+#[tauri::command]
+async fn show_pomodoro_notification(
+    app: tauri::AppHandle,
+    task_name: String,
+) -> Result<(), String> {
+    app.notification()
+        .builder()
+        .title("🍅 Pomodoro Complete!")
+        .body(format!(
+            "Task: {}\n\nGreat job! Time for a well-deserved break! 🎉",
+            task_name
+        ))
+        .show()
+        .map_err(|e| format!("Failed to show notification: {}", e))?;
 
     Ok(())
 }
@@ -562,6 +609,7 @@ fn main() {
     {
         tauri::Builder::default()
             .plugin(tauri_plugin_opener::init())
+            .plugin(tauri_plugin_notification::init())
             .invoke_handler(tauri::generate_handler![
                 get_app_data_dir,
                 load_day_data,
@@ -577,7 +625,8 @@ fn main() {
                 load_zoom_preference,
                 get_zoom_limits,
                 get_app_version,
-                open_url_in_browser
+                open_url_in_browser,
+                show_pomodoro_notification
             ])
             .run(tauri::generate_context!())
             .expect("error while running tauri application");
