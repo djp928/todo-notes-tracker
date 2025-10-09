@@ -459,6 +459,7 @@ async fn open_url_in_browser(app: tauri::AppHandle, url: String) -> Result<(), S
 ///
 /// This creates a native system notification that appears even when the app
 /// is in the background, minimized, or on a different workspace/desktop.
+/// The notification includes a system sound to alert the user audibly.
 ///
 /// # Arguments
 /// * `app` - The Tauri app handle (automatically injected by Tauri)
@@ -468,9 +469,15 @@ async fn open_url_in_browser(app: tauri::AppHandle, url: String) -> Result<(), S
 /// Ok(()) if notification was shown successfully, error message if failed
 ///
 /// # Platform Behavior
-/// - **macOS**: Shows in Notification Center, plays system sound, may request permission on first use
+/// - **macOS**: Shows in Notification Center, plays "default" system sound, may request permission on first use
 /// - **Windows**: Shows in Windows notification system, plays system sound
 /// - **Linux**: Shows via libnotify/D-Bus, plays system sound (if notification daemon is available)
+///
+/// # Sound Configuration
+/// Uses the system's "default" notification sound. Platform-specific sounds:
+/// - **macOS**: System sounds like "Ping", "Blow", "Hero" (currently set to "default")
+/// - **Windows**: .wav files can be specified
+/// - **Linux**: XDG theme sounds like "message-new-instant"
 ///
 /// # Errors
 /// Returns an error if:
@@ -497,6 +504,7 @@ async fn show_pomodoro_notification(
             "Task: {}\n\nGreat job! Time for a well-deserved break! 🎉",
             task_name
         ))
+        .sound("default")
         .show()
         .map_err(|e| format!("Failed to show notification: {}", e))?;
 
