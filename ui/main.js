@@ -539,7 +539,10 @@ function editTodo(index) {
     textInput.value = todo.text;
     notesTextarea.value = todo.notes || '';
     currentDateInfo.textContent = `Currently on: ${formatDate(currentDate)}`;
+    
+    // Reset date picker to initial state
     datePicker.classList.add('hidden');
+    showDatePickerBtn.textContent = '📅 Select Different Date';
     selectedDateDisplay.textContent = '';
     
     // Show modal
