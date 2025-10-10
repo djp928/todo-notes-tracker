@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Move todo items to arbitrary dates via calendar picker in edit modal
+  - Double-click to edit a todo and access the date picker interface
+  - Visual calendar displays current month with navigation controls
+  - Highlights current todo's date and today's date for easy reference
+  - Prevents moving to the same date (displays as disabled)
+  - Backend command `move_todo_to_date` handles atomic move operations
+  - Moved todos appear at the top of the destination day's list
+  - Calendar badges automatically update after moving todos
 - Calendar highlight now syncs with todo panel navigation - when using Previous/Next Day or Today buttons, the calendar panel automatically updates to show and highlight the selected day
 - System notifications for Pomodoro timer completion - notifications appear even when app is minimized or in background
   - macOS: Notifications appear in Notification Center with "default" system sound

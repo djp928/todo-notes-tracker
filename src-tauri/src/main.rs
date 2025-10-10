@@ -144,6 +144,67 @@ async fn create_todo_item(text: String) -> Result<TodoItem, String> {
     Ok(todo)
 }
 
+/// Move a todo item from one date to another.
+///
+/// # Arguments
+/// * `todo_id` - The unique ID of the todo item to move
+/// * `from_date` - Source date in YYYY-MM-DD format
+/// * `to_date` - Destination date in YYYY-MM-DD format
+/// * `data_dir` - Path to the app data directory
+///
+/// # Returns
+/// Ok(()) if the todo was successfully moved.
+///
+/// # Errors
+/// Returns an error if:
+/// - Date format is invalid
+/// - Todo item is not found
+/// - File operations fail
+#[tauri::command]
+async fn move_todo_to_date(
+    todo_id: String,
+    from_date: String,
+    to_date: String,
+    data_dir: String,
+) -> Result<(), String> {
+    // Parse dates to validate format
+    let _from_date_parsed = NaiveDate::parse_from_str(&from_date, "%Y-%m-%d")
+        .map_err(|e| format!("Invalid from_date format: {}", e))?;
+    let _to_date_parsed = NaiveDate::parse_from_str(&to_date, "%Y-%m-%d")
+        .map_err(|e| format!("Invalid to_date format: {}", e))?;
+
+    // If dates are the same, nothing to do
+    if from_date == to_date {
+        return Ok(());
+    }
+
+    // Load source day data
+    let mut from_day_data = load_day_data(from_date.clone(), data_dir.clone()).await?;
+
+    // Find and remove the todo from source
+    let todo_index = from_day_data
+        .todos
+        .iter()
+        .position(|t| t.id == todo_id)
+        .ok_or_else(|| format!("Todo with ID {} not found on {}", todo_id, from_date))?;
+
+    let todo_item = from_day_data.todos.remove(todo_index);
+
+    // Save updated source day
+    save_day_data(from_day_data, data_dir.clone()).await?;
+
+    // Load destination day data
+    let mut to_day_data = load_day_data(to_date.clone(), data_dir.clone()).await?;
+
+    // Add todo to destination (at the beginning to make it visible)
+    to_day_data.todos.insert(0, todo_item);
+
+    // Save updated destination day
+    save_day_data(to_day_data, data_dir).await?;
+
+    Ok(())
+}
+
 /// Start a pomodoro timer for a specific duration.
 ///
 /// The timer runs asynchronously and emits a "pomodoro-complete" event when finished.
@@ -688,6 +749,7 @@ fn main() {
                 load_day_data,
                 save_day_data,
                 create_todo_item,
+                move_todo_to_date,
                 start_pomodoro_timer,
                 stop_pomodoro_timer,
                 send_notification,
@@ -1180,5 +1242,141 @@ mod tests {
             let loaded = load_zoom_preference_from_path(file_path.clone()).unwrap();
             assert_eq!(loaded, zoom);
         }
+    }
+
+    #[tokio::test]
+    async fn test_move_todo_to_date() {
+        let temp_dir = setup_test_dir();
+        let data_dir = temp_dir.path().to_string_lossy().to_string();
+
+        // Create test todo items for the source date
+        let todo1 = create_todo_item("Todo to move".to_string()).await.unwrap();
+        let todo2 = create_todo_item("Todo to keep".to_string()).await.unwrap();
+        let todo_id = todo1.id.clone();
+
+        // Create source day data (2024-01-15)
+        let source_date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
+        let source_data = DayData {
+            date: source_date,
+            todos: vec![todo1.clone(), todo2.clone()],
+            notes: "Source notes".to_string(),
+        };
+        save_day_data(source_data, data_dir.clone()).await.unwrap();
+
+        // Create destination day with one existing todo (2024-01-20)
+        let dest_date = NaiveDate::from_ymd_opt(2024, 1, 20).unwrap();
+        let existing_todo = create_todo_item("Existing todo".to_string()).await.unwrap();
+        let dest_data = DayData {
+            date: dest_date,
+            todos: vec![existing_todo.clone()],
+            notes: "Dest notes".to_string(),
+        };
+        save_day_data(dest_data, data_dir.clone()).await.unwrap();
+
+        // Move todo from source to destination
+        let result = move_todo_to_date(
+            todo_id.clone(),
+            "2024-01-15".to_string(),
+            "2024-01-20".to_string(),
+            data_dir.clone(),
+        )
+        .await;
+
+        assert!(result.is_ok());
+
+        // Verify source day has only one todo left
+        let source_loaded = load_day_data("2024-01-15".to_string(), data_dir.clone())
+            .await
+            .unwrap();
+        assert_eq!(source_loaded.todos.len(), 1);
+        assert_eq!(source_loaded.todos[0].id, todo2.id);
+
+        // Verify destination day has both todos (moved one at beginning)
+        let dest_loaded = load_day_data("2024-01-20".to_string(), data_dir.clone())
+            .await
+            .unwrap();
+        assert_eq!(dest_loaded.todos.len(), 2);
+        assert_eq!(dest_loaded.todos[0].id, todo_id); // Moved todo is first
+        assert_eq!(dest_loaded.todos[1].id, existing_todo.id); // Existing todo is second
+    }
+
+    #[tokio::test]
+    async fn test_move_todo_to_date_same_date() {
+        let temp_dir = setup_test_dir();
+        let data_dir = temp_dir.path().to_string_lossy().to_string();
+
+        let todo = create_todo_item("Test todo".to_string()).await.unwrap();
+        let todo_id = todo.id.clone();
+
+        // Create day data
+        let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
+        let day_data = DayData {
+            date,
+            todos: vec![todo.clone()],
+            notes: "Notes".to_string(),
+        };
+        save_day_data(day_data, data_dir.clone()).await.unwrap();
+
+        // Move to same date should be a no-op
+        let result = move_todo_to_date(
+            todo_id.clone(),
+            "2024-01-15".to_string(),
+            "2024-01-15".to_string(),
+            data_dir.clone(),
+        )
+        .await;
+
+        assert!(result.is_ok());
+
+        // Verify todo is still there
+        let loaded = load_day_data("2024-01-15".to_string(), data_dir)
+            .await
+            .unwrap();
+        assert_eq!(loaded.todos.len(), 1);
+        assert_eq!(loaded.todos[0].id, todo_id);
+    }
+
+    #[tokio::test]
+    async fn test_move_todo_to_date_nonexistent_todo() {
+        let temp_dir = setup_test_dir();
+        let data_dir = temp_dir.path().to_string_lossy().to_string();
+
+        // Create empty source day
+        let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
+        let day_data = DayData {
+            date,
+            todos: vec![],
+            notes: "".to_string(),
+        };
+        save_day_data(day_data, data_dir.clone()).await.unwrap();
+
+        // Try to move non-existent todo
+        let result = move_todo_to_date(
+            "nonexistent-id".to_string(),
+            "2024-01-15".to_string(),
+            "2024-01-20".to_string(),
+            data_dir,
+        )
+        .await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("not found"));
+    }
+
+    #[tokio::test]
+    async fn test_move_todo_to_date_invalid_format() {
+        let temp_dir = setup_test_dir();
+        let data_dir = temp_dir.path().to_string_lossy().to_string();
+
+        let result = move_todo_to_date(
+            "some-id".to_string(),
+            "invalid-date".to_string(),
+            "2024-01-20".to_string(),
+            data_dir,
+        )
+        .await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid from_date format"));
     }
 }

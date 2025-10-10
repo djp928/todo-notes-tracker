@@ -495,6 +495,7 @@ async function addTodo() {
  * and per-item notes. The modal supports:
  * - Text editing with validation (prevents empty text)
  * - Multiline notes with whitespace trimming
+ * - Moving todo to a different date via calendar picker in edit modal
  * - Keyboard shortcuts: Ctrl+Enter to save, ESC to cancel
  * - Click outside modal to close (UX enhancement)
  * - Proper event cleanup to prevent memory leaks
@@ -519,17 +520,138 @@ function editTodo(index) {
     const saveBtn = document.getElementById('edit-todo-save');
     const cancelBtn = document.getElementById('edit-todo-cancel');
     
+    // Date picker elements
+    const currentDateInfo = document.getElementById('edit-todo-current-date');
+    const showDatePickerBtn = document.getElementById('edit-todo-show-datepicker');
+    const datePicker = document.getElementById('edit-todo-datepicker');
+    const datePickerGrid = document.getElementById('edit-datepicker-grid');
+    const datePickerMonthYear = document.getElementById('edit-datepicker-month-year');
+    const datePickerPrevMonth = document.getElementById('edit-datepicker-prev-month');
+    const datePickerNextMonth = document.getElementById('edit-datepicker-next-month');
+    const selectedDateDisplay = document.getElementById('edit-todo-selected-date');
+    const cancelMoveBtn = document.getElementById('edit-todo-cancel-move');
+    
+    // State for date picker
+    let pickerDate = new Date(currentDate);
+    let selectedMoveDate = null;
+    
     // Populate modal with current values
     textInput.value = todo.text;
     notesTextarea.value = todo.notes || '';
+    currentDateInfo.textContent = `Currently on: ${formatDate(currentDate)}`;
+    
+    // Reset date picker to initial state
+    datePicker.classList.add('hidden');
+    showDatePickerBtn.textContent = '📅 Select Different Date';
+    selectedDateDisplay.textContent = '';
     
     // Show modal
     modal.classList.remove('hidden');
     textInput.focus();
     textInput.select();
     
+    // Date picker functions
+    const toggleDatePicker = () => {
+        const isHidden = datePicker.classList.contains('hidden');
+        if (isHidden) {
+            datePicker.classList.remove('hidden');
+            renderDatePicker();
+            showDatePickerBtn.textContent = '📅 Hide Date Picker';
+        } else {
+            datePicker.classList.add('hidden');
+            showDatePickerBtn.textContent = '📅 Select Different Date';
+            selectedMoveDate = null;
+            selectedDateDisplay.textContent = '';
+        }
+    };
+    
+    const renderDatePicker = () => {
+        const year = pickerDate.getFullYear();
+        const month = pickerDate.getMonth();
+        
+        datePickerMonthYear.textContent = pickerDate.toLocaleDateString('en-US', { 
+            month: 'long', 
+            year: 'numeric' 
+        });
+        
+        // Clear grid
+        datePickerGrid.innerHTML = '';
+        
+        // Add day headers
+        const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        dayHeaders.forEach(day => {
+            const header = document.createElement('div');
+            header.className = 'day-header';
+            header.textContent = day;
+            datePickerGrid.appendChild(header);
+        });
+        
+        // Get first day of month and total days
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        // Add empty cells for days before month starts
+        for (let i = 0; i < firstDay; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'date-cell date-cell-disabled';
+            datePickerGrid.appendChild(emptyCell);
+        }
+        
+        // Add day cells
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const cellDate = new Date(year, month, day);
+            cellDate.setHours(0, 0, 0, 0);
+            
+            const cell = document.createElement('div');
+            cell.className = 'date-cell';
+            cell.textContent = day;
+            
+            // Check if this is today
+            if (cellDate.getTime() === today.getTime()) {
+                cell.classList.add('date-cell-today');
+            }
+            
+            // Check if this is the current todo's date
+            const currentDateNormalized = new Date(currentDate);
+            currentDateNormalized.setHours(0, 0, 0, 0);
+            if (cellDate.getTime() === currentDateNormalized.getTime()) {
+                cell.classList.add('date-cell-current');
+            }
+            
+            // Check if this is the selected move date
+            if (selectedMoveDate && cellDate.getTime() === selectedMoveDate.getTime()) {
+                cell.classList.add('date-cell-selected');
+            }
+            
+            // Don't allow selecting the current date (can't move to same date)
+            if (cellDate.getTime() === currentDateNormalized.getTime()) {
+                cell.style.cursor = 'not-allowed';
+            } else {
+                cell.addEventListener('click', () => {
+                    selectedMoveDate = cellDate;
+                    selectedDateDisplay.textContent = `Will move to: ${formatDate(cellDate)}`;
+                    renderDatePicker(); // Re-render to show selection
+                });
+            }
+            
+            datePickerGrid.appendChild(cell);
+        }
+    };
+    
+    const changeDatePickerMonth = (offset) => {
+        pickerDate.setMonth(pickerDate.getMonth() + offset);
+        renderDatePicker();
+    };
+    
+    // Month navigation handlers
+    const handlePrevMonth = () => changeDatePickerMonth(-1);
+    const handleNextMonth = () => changeDatePickerMonth(1);
+    
     // Handle save
-    const handleSave = () => {
+    const handleSave = async () => {
         const newText = textInput.value.trim();
         const newNotes = notesTextarea.value.trim();
         
@@ -538,15 +660,46 @@ function editTodo(index) {
             return;
         }
         
-        // Update todo
+        // Update todo text and notes
         todo.text = newText;
         todo.notes = newNotes;
+        
+        // Check if we need to move the todo
+        if (selectedMoveDate) {
+            try {
+                // Format dates for backend
+                const fromDate = formatDateYYYYMMDD(currentDate);
+                const toDate = formatDateYYYYMMDD(selectedMoveDate);
+                
+                // Move todo via backend
+                await window.invoke('move_todo_to_date', {
+                    todoId: todo.id,
+                    fromDate: fromDate,
+                    toDate: toDate,
+                    dataDir: dataDir
+                });
+                
+                // Reload current day data
+                await loadDayData(currentDate);
+                
+                // Update calendar
+                await updateCalendar();
+                
+                customAlert(`Todo moved to ${formatDate(selectedMoveDate)}!`, '✅ Success');
+            } catch (error) {
+                console.error('Failed to move todo:', error);
+                customAlert('Failed to move todo: ' + error, '❌ Error');
+                return;
+            }
+        } else {
+            // Just save changes if no move
+            await saveDayData();
+        }
         
         // Close modal and update UI
         modal.classList.add('hidden');
         cleanup();
         renderTodoList();
-        saveDayData();
     };
     
     // Handle cancel
@@ -577,14 +730,30 @@ function editTodo(index) {
     const cleanup = () => {
         saveBtn.removeEventListener('click', handleSave);
         cancelBtn.removeEventListener('click', handleCancel);
+        showDatePickerBtn.removeEventListener('click', toggleDatePicker);
+        datePickerPrevMonth.removeEventListener('click', handlePrevMonth);
+        datePickerNextMonth.removeEventListener('click', handleNextMonth);
+        cancelMoveBtn.removeEventListener('click', toggleDatePicker);
         document.removeEventListener('keydown', handleEsc);
         modal.removeEventListener('click', handleOutsideClick);
     };
     
     saveBtn.addEventListener('click', handleSave);
     cancelBtn.addEventListener('click', handleCancel);
+    showDatePickerBtn.addEventListener('click', toggleDatePicker);
+    datePickerPrevMonth.addEventListener('click', handlePrevMonth);
+    datePickerNextMonth.addEventListener('click', handleNextMonth);
+    cancelMoveBtn.addEventListener('click', toggleDatePicker);
     document.addEventListener('keydown', handleEsc);
     modal.addEventListener('click', handleOutsideClick);
+}
+
+// Helper function to format date as YYYY-MM-DD
+function formatDateYYYYMMDD(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 // Toggle todo completion
