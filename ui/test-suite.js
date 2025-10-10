@@ -8,6 +8,18 @@ describe('Utility Functions', () => {
         assert.equal(result, '2024-01-15');
     });
 
+    test('formatDateYYYYMMDD should format dates as YYYY-MM-DD', () => {
+        const date = new Date('2024-01-15T10:30:00');
+        const result = formatDateYYYYMMDD(date);
+        assert.equal(result, '2024-01-15');
+    });
+
+    test('formatDateYYYYMMDD should handle single-digit months and days', () => {
+        const date = new Date('2024-03-05T10:30:00');
+        const result = formatDateYYYYMMDD(date);
+        assert.equal(result, '2024-03-05');
+    });
+
     test('formatDateDisplay should format dates for display', () => {
         const date = new Date('2024-01-15T10:30:00');
         const result = formatDateDisplay(date);

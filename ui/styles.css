@@ -477,6 +477,162 @@ body {
     opacity: 0.7;
 }
 
+/* Date move section in edit modal */
+.date-move-section {
+    margin-top: 0.5rem;
+}
+
+.current-date-info {
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.date-picker-toggle-btn {
+    padding: 0.5rem 1rem;
+    background: var(--button-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: var(--theme-transition);
+    width: 100%;
+}
+
+.date-picker-toggle-btn:hover {
+    background: var(--button-secondary-hover);
+}
+
+.date-picker {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-secondary);
+    transition: var(--theme-transition);
+}
+
+.date-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.date-picker-header h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.date-picker-nav-btn {
+    background: var(--button-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    width: 2rem;
+    height: 2rem;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--theme-transition);
+}
+
+.date-picker-nav-btn:hover {
+    background: var(--button-secondary-hover);
+}
+
+.date-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+.date-picker-grid .day-header {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 0.25rem;
+}
+
+.date-picker-grid .date-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    transition: var(--theme-transition);
+}
+
+.date-picker-grid .date-cell:hover:not(.date-cell-disabled):not(.date-cell-current) {
+    background: var(--button-secondary-hover);
+    border-color: var(--button-primary);
+}
+
+.date-picker-grid .date-cell-disabled {
+    color: var(--text-tertiary);
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.date-picker-grid .date-cell-today {
+    font-weight: bold;
+    background: var(--button-secondary);
+}
+
+.date-picker-grid .date-cell-current {
+    background: var(--button-primary);
+    color: white;
+    font-weight: bold;
+}
+
+.date-picker-grid .date-cell-selected {
+    background: var(--accent-color);
+    color: white;
+    font-weight: bold;
+    border-color: var(--accent-color);
+}
+
+.date-picker-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.selected-date-display {
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.date-picker-action-btn {
+    padding: 0.375rem 0.75rem;
+    background: var(--button-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: var(--theme-transition);
+}
+
+.date-picker-action-btn:hover {
+    background: var(--button-secondary-hover);
+}
+
 .pane-header {
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
