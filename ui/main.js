@@ -495,7 +495,7 @@ async function addTodo() {
  * and per-item notes. The modal supports:
  * - Text editing with validation (prevents empty text)
  * - Multiline notes with whitespace trimming
- * - Moving todo to a different date via calendar picker
+ * - Moving todo to a different date via calendar picker in edit modal
  * - Keyboard shortcuts: Ctrl+Enter to save, ESC to cancel
  * - Click outside modal to close (UX enhancement)
  * - Proper event cleanup to prevent memory leaks
