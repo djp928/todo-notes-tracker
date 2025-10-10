@@ -83,6 +83,11 @@ body {
     transition: var(--theme-transition);
 }
 
+/* Utility class for hiding elements */
+.hidden {
+    display: none !important;
+}
+
 /* App container */
 .app-container {
     height: 100vh;

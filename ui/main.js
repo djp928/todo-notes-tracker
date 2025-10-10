@@ -643,6 +643,10 @@ function editTodo(index) {
         renderDatePicker();
     };
     
+    // Month navigation handlers
+    const handlePrevMonth = () => changeDatePickerMonth(-1);
+    const handleNextMonth = () => changeDatePickerMonth(1);
+    
     // Handle save
     const handleSave = async () => {
         const newText = textInput.value.trim();
@@ -724,8 +728,8 @@ function editTodo(index) {
         saveBtn.removeEventListener('click', handleSave);
         cancelBtn.removeEventListener('click', handleCancel);
         showDatePickerBtn.removeEventListener('click', toggleDatePicker);
-        datePickerPrevMonth.removeEventListener('click', () => changeDatePickerMonth(-1));
-        datePickerNextMonth.removeEventListener('click', () => changeDatePickerMonth(1));
+        datePickerPrevMonth.removeEventListener('click', handlePrevMonth);
+        datePickerNextMonth.removeEventListener('click', handleNextMonth);
         cancelMoveBtn.removeEventListener('click', toggleDatePicker);
         document.removeEventListener('keydown', handleEsc);
         modal.removeEventListener('click', handleOutsideClick);
@@ -734,8 +738,8 @@ function editTodo(index) {
     saveBtn.addEventListener('click', handleSave);
     cancelBtn.addEventListener('click', handleCancel);
     showDatePickerBtn.addEventListener('click', toggleDatePicker);
-    datePickerPrevMonth.addEventListener('click', () => changeDatePickerMonth(-1));
-    datePickerNextMonth.addEventListener('click', () => changeDatePickerMonth(1));
+    datePickerPrevMonth.addEventListener('click', handlePrevMonth);
+    datePickerNextMonth.addEventListener('click', handleNextMonth);
     cancelMoveBtn.addEventListener('click', toggleDatePicker);
     document.addEventListener('keydown', handleEsc);
     modal.addEventListener('click', handleOutsideClick);
