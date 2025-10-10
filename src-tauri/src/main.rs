@@ -1248,12 +1248,12 @@ mod tests {
     async fn test_move_todo_to_date() {
         let temp_dir = setup_test_dir();
         let data_dir = temp_dir.path().to_string_lossy().to_string();
-        
+
         // Create test todo items for the source date
         let todo1 = create_todo_item("Todo to move".to_string()).await.unwrap();
         let todo2 = create_todo_item("Todo to keep".to_string()).await.unwrap();
         let todo_id = todo1.id.clone();
-        
+
         // Create source day data (2024-01-15)
         let source_date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
         let source_data = DayData {
@@ -1262,7 +1262,7 @@ mod tests {
             notes: "Source notes".to_string(),
         };
         save_day_data(source_data, data_dir.clone()).await.unwrap();
-        
+
         // Create destination day with one existing todo (2024-01-20)
         let dest_date = NaiveDate::from_ymd_opt(2024, 1, 20).unwrap();
         let existing_todo = create_todo_item("Existing todo".to_string()).await.unwrap();
@@ -1272,24 +1272,29 @@ mod tests {
             notes: "Dest notes".to_string(),
         };
         save_day_data(dest_data, data_dir.clone()).await.unwrap();
-        
+
         // Move todo from source to destination
         let result = move_todo_to_date(
             todo_id.clone(),
             "2024-01-15".to_string(),
             "2024-01-20".to_string(),
-            data_dir.clone()
-        ).await;
-        
+            data_dir.clone(),
+        )
+        .await;
+
         assert!(result.is_ok());
-        
+
         // Verify source day has only one todo left
-        let source_loaded = load_day_data("2024-01-15".to_string(), data_dir.clone()).await.unwrap();
+        let source_loaded = load_day_data("2024-01-15".to_string(), data_dir.clone())
+            .await
+            .unwrap();
         assert_eq!(source_loaded.todos.len(), 1);
         assert_eq!(source_loaded.todos[0].id, todo2.id);
-        
+
         // Verify destination day has both todos (moved one at beginning)
-        let dest_loaded = load_day_data("2024-01-20".to_string(), data_dir.clone()).await.unwrap();
+        let dest_loaded = load_day_data("2024-01-20".to_string(), data_dir.clone())
+            .await
+            .unwrap();
         assert_eq!(dest_loaded.todos.len(), 2);
         assert_eq!(dest_loaded.todos[0].id, todo_id); // Moved todo is first
         assert_eq!(dest_loaded.todos[1].id, existing_todo.id); // Existing todo is second
@@ -1299,10 +1304,10 @@ mod tests {
     async fn test_move_todo_to_date_same_date() {
         let temp_dir = setup_test_dir();
         let data_dir = temp_dir.path().to_string_lossy().to_string();
-        
+
         let todo = create_todo_item("Test todo".to_string()).await.unwrap();
         let todo_id = todo.id.clone();
-        
+
         // Create day data
         let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
         let day_data = DayData {
@@ -1311,19 +1316,22 @@ mod tests {
             notes: "Notes".to_string(),
         };
         save_day_data(day_data, data_dir.clone()).await.unwrap();
-        
+
         // Move to same date should be a no-op
         let result = move_todo_to_date(
             todo_id.clone(),
             "2024-01-15".to_string(),
             "2024-01-15".to_string(),
-            data_dir.clone()
-        ).await;
-        
+            data_dir.clone(),
+        )
+        .await;
+
         assert!(result.is_ok());
-        
+
         // Verify todo is still there
-        let loaded = load_day_data("2024-01-15".to_string(), data_dir).await.unwrap();
+        let loaded = load_day_data("2024-01-15".to_string(), data_dir)
+            .await
+            .unwrap();
         assert_eq!(loaded.todos.len(), 1);
         assert_eq!(loaded.todos[0].id, todo_id);
     }
@@ -1332,7 +1340,7 @@ mod tests {
     async fn test_move_todo_to_date_nonexistent_todo() {
         let temp_dir = setup_test_dir();
         let data_dir = temp_dir.path().to_string_lossy().to_string();
-        
+
         // Create empty source day
         let date = NaiveDate::from_ymd_opt(2024, 1, 15).unwrap();
         let day_data = DayData {
@@ -1341,15 +1349,16 @@ mod tests {
             notes: "".to_string(),
         };
         save_day_data(day_data, data_dir.clone()).await.unwrap();
-        
+
         // Try to move non-existent todo
         let result = move_todo_to_date(
             "nonexistent-id".to_string(),
             "2024-01-15".to_string(),
             "2024-01-20".to_string(),
-            data_dir
-        ).await;
-        
+            data_dir,
+        )
+        .await;
+
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("not found"));
     }
@@ -1358,14 +1367,15 @@ mod tests {
     async fn test_move_todo_to_date_invalid_format() {
         let temp_dir = setup_test_dir();
         let data_dir = temp_dir.path().to_string_lossy().to_string();
-        
+
         let result = move_todo_to_date(
             "some-id".to_string(),
             "invalid-date".to_string(),
             "2024-01-20".to_string(),
-            data_dir
-        ).await;
-        
+            data_dir,
+        )
+        .await;
+
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Invalid from_date format"));
     }
