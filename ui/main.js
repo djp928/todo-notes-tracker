@@ -852,12 +852,32 @@ function handleDragEnd(e) {
 /**
  * Handle drag over event to enable drop.
  * Prevents default to allow drop and shows visual feedback.
+ * CRITICAL for macOS: Must preventDefault AND update visual indicators.
  */
 function handleDragOver(e) {
-    if (e.preventDefault) {
-        e.preventDefault();
+    e.preventDefault(); // Required for drop to work
+    e.stopPropagation(); // Prevent event bubbling
+    
+    const targetIndex = parseInt(e.currentTarget.dataset.index);
+    
+    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+        e.dataTransfer.dropEffect = 'move';
+        
+        // Update visual indicator based on mouse position
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midpoint = rect.top + (rect.height / 2);
+        
+        // Remove old classes
+        e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+        
+        // Add appropriate class
+        if (e.clientY < midpoint) {
+            e.currentTarget.classList.add('drag-over-top');
+        } else {
+            e.currentTarget.classList.add('drag-over-bottom');
+        }
     }
-    e.dataTransfer.dropEffect = 'move';
+    
     return false;
 }
 
@@ -866,22 +886,12 @@ function handleDragOver(e) {
  * Adds visual feedback showing where the item will be dropped.
  */
 function handleDragEnter(e) {
+    e.preventDefault(); // Also prevent default here for macOS
+    
     const targetIndex = parseInt(e.currentTarget.dataset.index);
     
     if (draggedIndex !== null && draggedIndex !== targetIndex) {
         e.currentTarget.classList.add('drag-over');
-        
-        // Determine if we should show indicator above or below
-        const rect = e.currentTarget.getBoundingClientRect();
-        const midpoint = rect.top + (rect.height / 2);
-        
-        if (e.clientY < midpoint) {
-            e.currentTarget.classList.add('drag-over-top');
-            e.currentTarget.classList.remove('drag-over-bottom');
-        } else {
-            e.currentTarget.classList.add('drag-over-bottom');
-            e.currentTarget.classList.remove('drag-over-top');
-        }
     }
 }
 
@@ -898,9 +908,8 @@ function handleDragLeave(e) {
  * Moves the dragged todo to the new position and saves.
  */
 function handleDrop(e) {
-    if (e.stopPropagation) {
-        e.stopPropagation();
-    }
+    e.preventDefault(); // CRITICAL for macOS
+    e.stopPropagation();
     
     const targetIndex = parseInt(e.currentTarget.dataset.index);
     
@@ -954,9 +963,8 @@ function handleDrop(e) {
  * Allows dropping in top/bottom zones.
  */
 function handleDropZoneDragOver(e) {
-    if (e.preventDefault) {
-        e.preventDefault();
-    }
+    e.preventDefault(); // CRITICAL for drop to work
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
     return false;
 }
@@ -966,6 +974,7 @@ function handleDropZoneDragOver(e) {
  * Shows visual feedback for top/bottom drop zones.
  */
 function handleDropZoneEnter(e) {
+    e.preventDefault(); // Also prevent default here
     if (draggedIndex !== null) {
         e.currentTarget.classList.add('drop-zone-active');
     }
@@ -984,9 +993,8 @@ function handleDropZoneLeave(e) {
  * Moves todo to top or bottom of list.
  */
 function handleDropZoneDrop(e) {
-    if (e.stopPropagation) {
-        e.stopPropagation();
-    }
+    e.preventDefault(); // CRITICAL for macOS
+    e.stopPropagation();
     
     const dropPosition = e.currentTarget.dataset.dropPosition;
     
