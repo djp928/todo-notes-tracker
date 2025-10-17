@@ -15,12 +15,14 @@ This feature allows users to reorder todo items by clicking and dragging them to
    - Fades in smoothly with opacity transition
 
 2. **Drop Zones (Top & Bottom)**
-   - Large, prominent zones at the top and bottom of the todo list
-   - Only appear when actively dragging an item (reduces clutter)
-   - 3rem tall for easy targeting
+   - Invisible by default (0 height) - **no visual clutter or dead space**
+   - Automatically become clickable when you start dragging
+   - **Expand only when you drag near them** - smooth height transition
+   - Expand to 3rem tall when hovering during drag for easy targeting
    - Top zone displays: "↑ Drop here to move to top"
    - Bottom zone displays: "↓ Drop here to move to bottom"
-   - Highlight with blue border and background when hovering during drag
+   - Highlight with blue border and background when active
+   - Collapse back to invisible after drag ends
    - Make it effortless to move items to first or last position
 
 3. **Dragging State**
@@ -119,19 +121,23 @@ The implementation carefully updates the `selectedTodo` index when:
 **Drop Zones:**
 ```css
 .drop-zone {
-    height: 3rem;
-    border: 2px dashed transparent;
-    opacity: 0;  /* Hidden until dragging */
+    height: 0;  /* Invisible by default - no dead space */
+    opacity: 0;
     pointer-events: none;
+    overflow: hidden;
+    transition: all 0.2s ease;
 }
 
-/* Show when dragging */
+/* Enable interaction when dragging */
 .todo-list:has(.todo-item.dragging) .drop-zone {
-    opacity: 1;
     pointer-events: auto;
 }
 
+/* Expand when hovering during drag */
 .drop-zone-active {
+    height: 3rem;
+    margin: 0.5rem 0;
+    opacity: 1;
     border-color: var(--button-primary);
     background-color: var(--todo-selected-bg);
 }
@@ -164,7 +170,7 @@ The implementation carefully updates the `selectedTodo` index when:
 
 1. **Visual Indicators**
    - Clear drag handle icon
-   - Large, easy-to-target drop zones (3rem tall)
+   - Drop zones that expand on demand (no dead space when not in use)
    - High contrast drop indicators
    - Smooth animations for feedback
    - Helpful text labels on drop zones
@@ -173,7 +179,8 @@ The implementation carefully updates the `selectedTodo` index when:
    - Drop zones make top/bottom placement effortless
    - No precision required for common operations
    - Clear visual feedback at every step
-   - Zones only appear when needed (no clutter)
+   - **Zones are invisible until needed** (clean aesthetic)
+   - Zones expand automatically when you drag near them
 
 3. **Keyboard Support**
    - Items remain clickable during drag
@@ -231,7 +238,9 @@ The implementation carefully updates the `selectedTodo` index when:
 - **Smooth Animations** - CSS transitions are hardware-accelerated
 - **Minimal State** - Only tracks draggedIndex and dropTargetIndex
 - **Dynamic Drop Zones** - Only created during render, not persistent DOM elements
-- **CSS-Only Visibility** - Drop zones hidden/shown via CSS, no JS toggling
+- **CSS-Only Visibility** - Drop zones hidden/shown via CSS height and opacity
+- **Smooth Transitions** - CSS transitions handle expansion/collapse smoothly
+- **Zero Height When Inactive** - No wasted space or layout shifts when not dragging
 - **Auto-save** - Uses existing debounced save mechanism
 
 ## Future Enhancements (Not Implemented)
