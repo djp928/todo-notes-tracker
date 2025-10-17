@@ -756,6 +756,7 @@ body {
 .todo-item.dragging {
     opacity: 0.4;
     background-color: var(--todo-selected-bg);
+    pointer-events: none; /* CRITICAL for macOS: Allow events to pass through to elements below */
 }
 
 .todo-item.drag-over {
