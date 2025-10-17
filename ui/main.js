@@ -400,7 +400,7 @@ function createTodoElement(todo, index) {
     todoEl.className = `todo-item ${selectedTodo === index ? 'selected' : ''}`;
     todoEl.dataset.index = index;
     
-    // Add drag event handlers
+    // Add drag event handlers to the todo item
     todoEl.addEventListener('dragstart', handleDragStart);
     todoEl.addEventListener('dragend', handleDragEnd);
     todoEl.addEventListener('dragover', handleDragOver);
@@ -413,20 +413,20 @@ function createTodoElement(todo, index) {
     dragHandle.className = 'drag-handle';
     dragHandle.innerHTML = '⋮⋮';
     dragHandle.title = 'Drag to reorder';
-    dragHandle.draggable = true;
     
-    // Fix for macOS: prevent default on mousedown
+    // Make drag handle initiate drag on the parent todo item
     dragHandle.addEventListener('mousedown', (e) => {
-        // Make the parent draggable when drag handle is clicked
+        // Prevent text selection
+        e.preventDefault();
+        // Make parent draggable
         todoEl.draggable = true;
     });
     
-    // When drag starts from handle, it will trigger parent's dragstart
-    dragHandle.addEventListener('dragstart', (e) => {
-        // Stop propagation so parent handles it
-        e.stopPropagation();
-        // Trigger parent's drag start
-        handleDragStart.call(todoEl, e);
+    dragHandle.addEventListener('mouseup', () => {
+        // Remove draggable after drag ends to prevent accidental drags
+        setTimeout(() => {
+            todoEl.draggable = false;
+        }, 100);
     });
     
     // Create elements manually to use proper event listeners
