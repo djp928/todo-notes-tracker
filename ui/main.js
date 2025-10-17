@@ -816,6 +816,7 @@ function selectTodo(index) {
 // Drag and Drop state
 let draggedIndex = null;
 let dropTargetIndex = null;
+let dragOverLogged = false; // Track if we've logged dragover for this drag
 
 /**
  * Handle drag start event for todo reordering.
@@ -823,6 +824,7 @@ let dropTargetIndex = null;
  */
 function handleDragStart(e) {
     draggedIndex = parseInt(e.currentTarget.dataset.index);
+    dragOverLogged = false; // Reset for new drag
     e.currentTarget.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
     // Use text/plain for better cross-platform compatibility (especially macOS)
@@ -873,6 +875,12 @@ function handleDragOver(e) {
     e.preventDefault(); // Required for drop to work
     e.stopPropagation(); // Prevent event bubbling
     
+    // Log once per drag operation
+    if (!dragOverLogged) {
+        console.log('DragOver is being called - drop should work');
+        dragOverLogged = true;
+    }
+    
     const targetIndex = parseInt(e.currentTarget.dataset.index);
     
     if (draggedIndex !== null && draggedIndex !== targetIndex) {
@@ -891,6 +899,9 @@ function handleDragOver(e) {
         } else {
             e.currentTarget.classList.add('drag-over-bottom');
         }
+    } else if (draggedIndex === targetIndex) {
+        // Allow drop on same element (will be ignored but allows drop event to fire)
+        e.dataTransfer.dropEffect = 'move';
     }
     
     return false;
