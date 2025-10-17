@@ -825,7 +825,11 @@ function handleDragStart(e) {
     draggedIndex = parseInt(e.currentTarget.dataset.index);
     e.currentTarget.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', e.currentTarget.innerHTML);
+    // Use text/plain for better cross-platform compatibility (especially macOS)
+    e.dataTransfer.setData('text/plain', draggedIndex.toString());
+    
+    // Debug: Log to help troubleshoot
+    console.log('Drag started:', draggedIndex);
 }
 
 /**
@@ -911,7 +915,11 @@ function handleDrop(e) {
     e.preventDefault(); // CRITICAL for macOS
     e.stopPropagation();
     
+    // Debug: Log drop event
+    console.log('Drop event fired, draggedIndex:', draggedIndex);
+    
     const targetIndex = parseInt(e.currentTarget.dataset.index);
+    console.log('Drop targetIndex:', targetIndex);
     
     if (draggedIndex !== null && draggedIndex !== targetIndex) {
         // Calculate drop position based on mouse position
@@ -934,6 +942,8 @@ function handleDrop(e) {
             newIndex--;
         }
         
+        console.log('Reordering: moving from', draggedIndex, 'to', newIndex);
+        
         // Reorder the todos array
         const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
         currentDayData.todos.splice(newIndex, 0, movedTodo);
@@ -953,6 +963,10 @@ function handleDrop(e) {
         renderTodoList();
         saveDayData();
         updateCalendarBadges();
+        
+        console.log('Reorder complete');
+    } else {
+        console.log('Drop ignored - same position or null draggedIndex');
     }
     
     return false;
