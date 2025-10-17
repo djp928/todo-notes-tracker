@@ -294,6 +294,33 @@ function setupEventListeners() {
         });
     }
     
+    // Drag and drop event delegation on parent container (better for macOS)
+    if (todoListEl) {
+        console.log('Setting up drag event delegation on todoListEl');
+        
+        todoListEl.addEventListener('dragover', (e) => {
+            // Find the todo-item being dragged over
+            const todoItem = e.target.closest('.todo-item');
+            if (todoItem && todoItem.dataset.index) {
+                handleDragOver.call(todoItem, e);
+            }
+        });
+        
+        todoListEl.addEventListener('drop', (e) => {
+            const todoItem = e.target.closest('.todo-item');
+            if (todoItem && todoItem.dataset.index) {
+                handleDrop.call(todoItem, e);
+            }
+        });
+        
+        todoListEl.addEventListener('dragenter', (e) => {
+            const todoItem = e.target.closest('.todo-item');
+            if (todoItem && todoItem.dataset.index) {
+                handleDragEnter.call(todoItem, e);
+            }
+        });
+    }
+    
     // Auto-save on window blur/close
     window.addEventListener('blur', saveDayData);
     window.addEventListener('beforeunload', saveDayData);
