@@ -299,8 +299,10 @@ function setupEventListeners() {
         console.log('Setting up drag event delegation on todoListEl');
         
         todoListEl.addEventListener('dragover', (e) => {
+            console.log('todoListEl dragover fired, e.target:', e.target.className);
             // Find the todo-item being dragged over
             const todoItem = e.target.closest('.todo-item');
+            console.log('Found todoItem:', todoItem ? todoItem.dataset.index : 'null');
             if (todoItem && todoItem.dataset.index) {
                 // Create a new event-like object with todoItem as currentTarget
                 const delegatedEvent = Object.create(e);
@@ -313,6 +315,7 @@ function setupEventListeners() {
         });
         
         todoListEl.addEventListener('drop', (e) => {
+            console.log('todoListEl drop fired');
             const todoItem = e.target.closest('.todo-item');
             if (todoItem && todoItem.dataset.index) {
                 const delegatedEvent = Object.create(e);
