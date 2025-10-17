@@ -934,10 +934,13 @@ function handleDragEnd(e) {
  * CRITICAL for macOS: Must preventDefault AND update visual indicators.
  */
 function handleDragOver(e) {
+    console.log('handleDragOver CALLED! e.currentTarget:', e.currentTarget ? e.currentTarget.className : 'null', 'e.target:', e.target.className);
+    
     e.preventDefault(); // Required for drop to work
     e.stopPropagation(); // Prevent event bubbling
     
     const targetIndex = parseInt(e.currentTarget.dataset.index);
+    console.log('targetIndex from dataset:', targetIndex);
     
     // Log once per drag operation
     if (!dragOverLogged) {
