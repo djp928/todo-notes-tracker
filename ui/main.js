@@ -364,10 +364,34 @@ function updateUI() {
 function renderTodoList() {
     todoListEl.innerHTML = '';
     
+    // Add drop zone at the top
+    if (currentDayData.todos.length > 0) {
+        const topDropZone = document.createElement('div');
+        topDropZone.className = 'drop-zone drop-zone-top';
+        topDropZone.dataset.dropPosition = 'top';
+        topDropZone.addEventListener('dragover', handleDropZoneDragOver);
+        topDropZone.addEventListener('drop', handleDropZoneDrop);
+        topDropZone.addEventListener('dragenter', handleDropZoneEnter);
+        topDropZone.addEventListener('dragleave', handleDropZoneLeave);
+        todoListEl.appendChild(topDropZone);
+    }
+    
     currentDayData.todos.forEach((todo, index) => {
         const todoEl = createTodoElement(todo, index);
         todoListEl.appendChild(todoEl);
     });
+    
+    // Add drop zone at the bottom
+    if (currentDayData.todos.length > 0) {
+        const bottomDropZone = document.createElement('div');
+        bottomDropZone.className = 'drop-zone drop-zone-bottom';
+        bottomDropZone.dataset.dropPosition = 'bottom';
+        bottomDropZone.addEventListener('dragover', handleDropZoneDragOver);
+        bottomDropZone.addEventListener('drop', handleDropZoneDrop);
+        bottomDropZone.addEventListener('dragenter', handleDropZoneEnter);
+        bottomDropZone.addEventListener('dragleave', handleDropZoneLeave);
+        todoListEl.appendChild(bottomDropZone);
+    }
 }
 
 // Create a todo element
@@ -816,6 +840,11 @@ function handleDragEnd(e) {
         item.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
     });
     
+    // Remove drop zone active states
+    document.querySelectorAll('.drop-zone').forEach(zone => {
+        zone.classList.remove('drop-zone-active');
+    });
+    
     draggedIndex = null;
     dropTargetIndex = null;
 }
@@ -919,6 +948,84 @@ function handleDrop(e) {
     
     return false;
 }
+
+/**
+ * Handle drag over event for drop zones.
+ * Allows dropping in top/bottom zones.
+ */
+function handleDropZoneDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+/**
+ * Handle drag enter event for drop zones.
+ * Shows visual feedback for top/bottom drop zones.
+ */
+function handleDropZoneEnter(e) {
+    if (draggedIndex !== null) {
+        e.currentTarget.classList.add('drop-zone-active');
+    }
+}
+
+/**
+ * Handle drag leave event for drop zones.
+ * Removes visual feedback from drop zones.
+ */
+function handleDropZoneLeave(e) {
+    e.currentTarget.classList.remove('drop-zone-active');
+}
+
+/**
+ * Handle drop event for drop zones.
+ * Moves todo to top or bottom of list.
+ */
+function handleDropZoneDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    const dropPosition = e.currentTarget.dataset.dropPosition;
+    
+    if (draggedIndex !== null) {
+        let newIndex;
+        
+        if (dropPosition === 'top') {
+            newIndex = 0;
+        } else if (dropPosition === 'bottom') {
+            newIndex = currentDayData.todos.length - 1;
+        }
+        
+        // Only reorder if position actually changes
+        if (newIndex !== draggedIndex) {
+            // Reorder the todos array
+            const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
+            currentDayData.todos.splice(newIndex, 0, movedTodo);
+            
+            // Update selected todo index if needed
+            if (selectedTodo === draggedIndex) {
+                selectedTodo = newIndex;
+            } else if (selectedTodo !== null) {
+                if (draggedIndex < selectedTodo && newIndex >= selectedTodo) {
+                    selectedTodo--;
+                } else if (draggedIndex > selectedTodo && newIndex <= selectedTodo) {
+                    selectedTodo++;
+                }
+            }
+            
+            // Re-render and save
+            renderTodoList();
+            saveDayData();
+            updateCalendarBadges();
+        }
+    }
+    
+    return false;
+}
+
 
 
 // Move todo to next day

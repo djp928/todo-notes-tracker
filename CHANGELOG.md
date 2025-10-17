@@ -10,7 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Drag-and-drop todo reordering** - Click and drag todos to reorder them in the task list
   - Visual drag handle (⋮⋮) appears on hover for intuitive interaction
-  - Drop indicator shows precisely where the todo will be placed
+  - **Drop zones at top and bottom** make it easy to move items to the beginning or end
+  - Drop zones show helpful labels: "↑ Drop here to move to top" and "↓ Drop here to move to bottom"
+  - Drop zones only appear during drag operation to reduce visual clutter
+  - Drop indicator shows precisely where the todo will be placed for mid-list drops
   - Smooth animations and visual feedback during drag operation
   - Works with keyboard accessibility (todo remains selectable during drag)
   - Automatically saves reordered list and updates calendar badges

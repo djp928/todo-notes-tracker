@@ -771,6 +771,48 @@ body {
     margin-bottom: -2px;
 }
 
+/* Drop zones for easier drag-and-drop to top/bottom */
+.drop-zone {
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed transparent;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+    transition: all 0.2s ease;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.drop-zone::before {
+    content: '';
+}
+
+/* Show drop zones when dragging */
+.todo-item.dragging ~ .drop-zone,
+.todo-list:has(.todo-item.dragging) .drop-zone {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.drop-zone-top::before {
+    content: '↑ Drop here to move to top';
+}
+
+.drop-zone-bottom::before {
+    content: '↓ Drop here to move to bottom';
+}
+
+.drop-zone-active {
+    border-color: var(--button-primary);
+    background-color: var(--todo-selected-bg);
+    color: var(--button-primary);
+    font-weight: 600;
+}
+
 
 .todo-checkbox {
     width: 20px;
