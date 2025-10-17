@@ -858,44 +858,6 @@ function selectTodo(index) {
 let draggedIndex = null;
 let dropTargetIndex = null;
 let dragOverLogged = false; // Track if we've logged dragover for this drag
-let currentHoverIndex = null; // Track which item mouse is over during drag
-
-/**
- * WORKAROUND for macOS: Handle mouse movement during drag.
- * Since dragover doesn't fire in Tauri macOS WebView, use mousemove instead.
- */
-function handleDragMouseMove(e) {
-    if (draggedIndex === null) return;
-    
-    // Find which todo item the mouse is over
-    const elements = document.elementsFromPoint(e.clientX, e.clientY);
-    const todoItem = elements.find(el => el.classList && el.classList.contains('todo-item'));
-    
-    if (todoItem && todoItem.dataset.index) {
-        const hoverIndex = parseInt(todoItem.dataset.index);
-        
-        if (hoverIndex !== currentHoverIndex) {
-            // Clear previous hover effects
-            document.querySelectorAll('.todo-item').forEach(item => {
-                item.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
-            });
-            
-            currentHoverIndex = hoverIndex;
-            
-            if (hoverIndex !== draggedIndex) {
-                // Add hover effect
-                const rect = todoItem.getBoundingClientRect();
-                const midpoint = rect.top + (rect.height / 2);
-                
-                if (e.clientY < midpoint) {
-                    todoItem.classList.add('drag-over-top');
-                } else {
-                    todoItem.classList.add('drag-over-bottom');
-                }
-            }
-        }
-    }
-}
 
 /**
  * Handle drag start event for todo reordering.
@@ -922,62 +884,17 @@ function handleDragStart(e) {
     setTimeout(() => {
         document.body.removeChild(dragImage);
     }, 0);
-    
-    // Workaround for macOS: use mousemove to track position
-    document.addEventListener('mousemove', handleDragMouseMove);
 }
 
 /**
  * Handle drag end event for todo reordering.
  * Cleans up drag state and visual indicators.
- * Workaround: Since dragover/drop don't fire reliably on macOS, handle reorder here.
  */
 function handleDragEnd(e) {
-    // Remove mousemove listener
-    document.removeEventListener('mousemove', handleDragMouseMove);
-    
     // Save reference to element before setTimeout
     const element = e.currentTarget;
     
-    // Workaround for macOS: Perform reorder based on currentHoverIndex
-    if (draggedIndex !== null && currentHoverIndex !== null && draggedIndex !== currentHoverIndex) {
-        // Calculate drop position
-        const targetIndex = currentHoverIndex;
-        let newIndex = targetIndex;
-        
-        // Determine if dropping above or below based on the class
-        const targetItem = document.querySelector(`.todo-item[data-index="${targetIndex}"]`);
-        if (targetItem && targetItem.classList.contains('drag-over-bottom')) {
-            newIndex = targetIndex + 1;
-        }
-        
-        // Adjust if dragging down
-        if (draggedIndex < newIndex) {
-            newIndex--;
-        }
-        
-        // Reorder the todos array
-        const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
-        currentDayData.todos.splice(newIndex, 0, movedTodo);
-        
-        // Update selected todo index if needed
-        if (selectedTodo === draggedIndex) {
-            selectedTodo = newIndex;
-        } else if (selectedTodo !== null) {
-            if (draggedIndex < selectedTodo && newIndex >= selectedTodo) {
-                selectedTodo--;
-            } else if (draggedIndex > selectedTodo && newIndex <= selectedTodo) {
-                selectedTodo++;
-            }
-        }
-        
-        // Re-render and save
-        renderTodoList();
-        saveDayData();
-        updateCalendarBadges();
-    }
-    
-    // Delay visual cleanup
+    // Delay visual cleanup to ensure drop event fires first
     setTimeout(() => {
         element.classList.remove('dragging');
         
@@ -993,7 +910,6 @@ function handleDragEnd(e) {
         
         draggedIndex = null;
         dropTargetIndex = null;
-        currentHoverIndex = null;
     }, 50);
 }
 
