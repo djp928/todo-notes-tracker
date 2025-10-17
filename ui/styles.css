@@ -780,7 +780,7 @@ body {
     border: 2px dashed transparent;
     border-radius: 4px;
     margin: 0;
-    transition: all 0.2s ease;
+    transition: height 0.2s ease, margin 0.2s ease, opacity 0.2s ease;
     color: var(--text-muted);
     font-size: 0.875rem;
     opacity: 0;
@@ -790,10 +790,14 @@ body {
 
 .drop-zone::before {
     content: '';
+    white-space: nowrap;
 }
 
-/* Enable drop zones when dragging (but keep them collapsed) */
+/* Expand drop zones when dragging (always show them) */
 .todo-list:has(.todo-item.dragging) .drop-zone {
+    height: 2.5rem;
+    margin: 0.25rem 0;
+    opacity: 0.6;
     pointer-events: auto;
 }
 
@@ -805,10 +809,9 @@ body {
     content: '↓ Drop here to move to bottom';
 }
 
-/* Expand drop zone when actively hovering during drag */
-.drop-zone-active {
-    height: 3rem;
-    margin: 0.5rem 0;
+/* Highlight when hovering */
+.drop-zone-active,
+.todo-list:has(.todo-item.dragging) .drop-zone:hover {
     opacity: 1;
     border-color: var(--button-primary);
     background-color: var(--todo-selected-bg);

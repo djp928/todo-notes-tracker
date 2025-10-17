@@ -398,7 +398,6 @@ function renderTodoList() {
 function createTodoElement(todo, index) {
     const todoEl = document.createElement('div');
     todoEl.className = `todo-item ${selectedTodo === index ? 'selected' : ''}`;
-    todoEl.draggable = true;
     todoEl.dataset.index = index;
     
     // Add drag event handlers
@@ -414,6 +413,21 @@ function createTodoElement(todo, index) {
     dragHandle.className = 'drag-handle';
     dragHandle.innerHTML = '⋮⋮';
     dragHandle.title = 'Drag to reorder';
+    dragHandle.draggable = true;
+    
+    // Fix for macOS: prevent default on mousedown
+    dragHandle.addEventListener('mousedown', (e) => {
+        // Make the parent draggable when drag handle is clicked
+        todoEl.draggable = true;
+    });
+    
+    // When drag starts from handle, it will trigger parent's dragstart
+    dragHandle.addEventListener('dragstart', (e) => {
+        // Stop propagation so parent handles it
+        e.stopPropagation();
+        // Trigger parent's drag start
+        handleDragStart.call(todoEl, e);
+    });
     
     // Create elements manually to use proper event listeners
     const checkbox = document.createElement('div');
