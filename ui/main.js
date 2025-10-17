@@ -830,6 +830,22 @@ function handleDragStart(e) {
     // Use text/plain for better cross-platform compatibility (especially macOS)
     e.dataTransfer.setData('text/plain', draggedIndex.toString());
     
+    // CRITICAL for macOS: Create a custom drag image to avoid blocking events
+    // Create a small, transparent drag image so the actual element doesn't block events
+    const dragImage = document.createElement('div');
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    dragImage.style.width = '1px';
+    dragImage.style.height = '1px';
+    dragImage.style.opacity = '0';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    
+    // Clean up drag image after drag starts
+    setTimeout(() => {
+        document.body.removeChild(dragImage);
+    }, 0);
+    
     // Debug: Log to help troubleshoot
     console.log('Drag started:', draggedIndex);
 }
