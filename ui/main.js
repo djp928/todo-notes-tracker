@@ -870,11 +870,16 @@ let currentHoverIndex = null; // Track which item mouse is over during drag
  * Since dragover doesn't fire in Tauri macOS WebView, use mousemove instead.
  */
 function handleDragMouseMove(e) {
+    console.log('mousemove fired during drag, x:', e.clientX, 'y:', e.clientY);
+    
     if (draggedIndex === null) return;
     
     // Find which todo item the mouse is over
     const elements = document.elementsFromPoint(e.clientX, e.clientY);
+    console.log('Elements at point:', elements.length, 'first:', elements[0] ? elements[0].className : 'none');
+    
     const todoItem = elements.find(el => el.classList && el.classList.contains('todo-item'));
+    console.log('Found todo-item:', todoItem ? todoItem.dataset.index : 'null');
     
     if (todoItem && todoItem.dataset.index) {
         const hoverIndex = parseInt(todoItem.dataset.index);
