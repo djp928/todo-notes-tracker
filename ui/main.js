@@ -835,22 +835,30 @@ function handleDragStart(e) {
 /**
  * Handle drag end event for todo reordering.
  * Cleans up drag state and visual indicators.
+ * Use setTimeout to ensure drop event fires first on macOS.
  */
 function handleDragEnd(e) {
-    e.currentTarget.classList.remove('dragging');
+    console.log('Drag end event');
     
-    // Remove all drag-over classes
-    document.querySelectorAll('.todo-item').forEach(item => {
-        item.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
-    });
-    
-    // Remove drop zone active states
-    document.querySelectorAll('.drop-zone').forEach(zone => {
-        zone.classList.remove('drop-zone-active');
-    });
-    
-    draggedIndex = null;
-    dropTargetIndex = null;
+    // Delay cleanup to ensure drop event fires first on macOS
+    setTimeout(() => {
+        e.currentTarget.classList.remove('dragging');
+        
+        // Remove all drag-over classes
+        document.querySelectorAll('.todo-item').forEach(item => {
+            item.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+        });
+        
+        // Remove drop zone active states
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.classList.remove('drop-zone-active');
+        });
+        
+        draggedIndex = null;
+        dropTargetIndex = null;
+        
+        console.log('Cleanup complete');
+    }, 50); // Small delay to let drop event fire first
 }
 
 /**
