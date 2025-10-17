@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .item {
+            padding: 20px;
+            margin: 10px;
+            background: lightblue;
+            cursor: move;
+        }
+        .item.over {
+            border: 2px solid red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Drag Test</h1>
+    <div id="item1" class="item" draggable="true">Item 1 - Drag me</div>
+    <div id="item2" class="item" draggable="true">Item 2 - Drag me</div>
+    <div id="item3" class="item" draggable="true">Item 3 - Drag me</div>
+    
+    <script>
+        let draggedItem = null;
+        
+        document.querySelectorAll('.item').forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                draggedItem = e.target;
+                console.log('DRAGSTART:', e.target.id);
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', e.target.id);
+            });
+            
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.target.classList.add('over');
+                console.log('DRAGOVER:', e.target.id);
+            });
+            
+            item.addEventListener('dragleave', (e) => {
+                e.target.classList.remove('over');
+            });
+            
+            item.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.target.classList.remove('over');
+                console.log('DROP on:', e.target.id, 'dragged:', draggedItem.id);
+                alert('DROP worked! Dragged ' + draggedItem.id + ' onto ' + e.target.id);
+            });
+            
+            item.addEventListener('dragend', (e) => {
+                console.log('DRAGEND');
+                document.querySelectorAll('.item').forEach(i => i.classList.remove('over'));
+            });
+        });
+    </script>
+</body>
+</html>

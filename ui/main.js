@@ -302,21 +302,37 @@ function setupEventListeners() {
             // Find the todo-item being dragged over
             const todoItem = e.target.closest('.todo-item');
             if (todoItem && todoItem.dataset.index) {
-                handleDragOver.call(todoItem, e);
+                // Create a new event-like object with todoItem as currentTarget
+                const delegatedEvent = Object.create(e);
+                Object.defineProperty(delegatedEvent, 'currentTarget', {
+                    value: todoItem,
+                    writable: false
+                });
+                handleDragOver(delegatedEvent);
             }
         });
         
         todoListEl.addEventListener('drop', (e) => {
             const todoItem = e.target.closest('.todo-item');
             if (todoItem && todoItem.dataset.index) {
-                handleDrop.call(todoItem, e);
+                const delegatedEvent = Object.create(e);
+                Object.defineProperty(delegatedEvent, 'currentTarget', {
+                    value: todoItem,
+                    writable: false
+                });
+                handleDrop(delegatedEvent);
             }
         });
         
         todoListEl.addEventListener('dragenter', (e) => {
             const todoItem = e.target.closest('.todo-item');
             if (todoItem && todoItem.dataset.index) {
-                handleDragEnter.call(todoItem, e);
+                const delegatedEvent = Object.create(e);
+                Object.defineProperty(delegatedEvent, 'currentTarget', {
+                    value: todoItem,
+                    writable: false
+                });
+                handleDragEnter(delegatedEvent);
             }
         });
     }
