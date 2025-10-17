@@ -727,6 +727,51 @@ body {
     padding-left: calc(0.75rem - 3px);
 }
 
+/* Drag handle for reordering */
+.drag-handle {
+    cursor: grab;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    padding: 0.25rem;
+    flex-shrink: 0;
+    user-select: none;
+    opacity: 0;
+    transition: opacity 0.2s, color 0.2s;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.todo-item:hover .drag-handle {
+    opacity: 1;
+}
+
+.drag-handle:hover {
+    color: var(--text-primary);
+}
+
+/* Drag states */
+.todo-item.dragging {
+    opacity: 0.4;
+    background-color: var(--todo-selected-bg);
+}
+
+.todo-item.drag-over {
+    background-color: var(--todo-hover-bg);
+}
+
+.todo-item.drag-over-top {
+    border-top: 2px solid var(--button-primary);
+    margin-top: -2px;
+}
+
+.todo-item.drag-over-bottom {
+    border-bottom: 2px solid var(--button-primary);
+    margin-bottom: -2px;
+}
+
+
 .todo-checkbox {
     width: 20px;
     height: 20px;

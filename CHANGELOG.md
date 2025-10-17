@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Drag-and-drop todo reordering** - Click and drag todos to reorder them in the task list
+  - Visual drag handle (⋮⋮) appears on hover for intuitive interaction
+  - Drop indicator shows precisely where the todo will be placed
+  - Smooth animations and visual feedback during drag operation
+  - Works with keyboard accessibility (todo remains selectable during drag)
+  - Automatically saves reordered list and updates calendar badges
+  - Selected todo tracking preserved after reordering
 - Move todo items to arbitrary dates via calendar picker in edit modal
   - Double-click to edit a todo and access the date picker interface
   - Visual calendar displays current month with navigation controls

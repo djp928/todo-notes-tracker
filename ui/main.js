@@ -374,6 +374,22 @@ function renderTodoList() {
 function createTodoElement(todo, index) {
     const todoEl = document.createElement('div');
     todoEl.className = `todo-item ${selectedTodo === index ? 'selected' : ''}`;
+    todoEl.draggable = true;
+    todoEl.dataset.index = index;
+    
+    // Add drag event handlers
+    todoEl.addEventListener('dragstart', handleDragStart);
+    todoEl.addEventListener('dragend', handleDragEnd);
+    todoEl.addEventListener('dragover', handleDragOver);
+    todoEl.addEventListener('drop', handleDrop);
+    todoEl.addEventListener('dragenter', handleDragEnter);
+    todoEl.addEventListener('dragleave', handleDragLeave);
+    
+    // Create drag handle
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'drag-handle';
+    dragHandle.innerHTML = '⋮⋮';
+    dragHandle.title = 'Drag to reorder';
     
     // Create elements manually to use proper event listeners
     const checkbox = document.createElement('div');
@@ -452,9 +468,12 @@ function createTodoElement(todo, index) {
                 } else {
                 }
             });
-        });    actionsDiv.appendChild(moveBtn);
+        });
+    
+    actionsDiv.appendChild(moveBtn);
     actionsDiv.appendChild(deleteBtn);
     
+    todoEl.appendChild(dragHandle);
     todoEl.appendChild(checkbox);
     todoEl.appendChild(todoText);
     todoEl.appendChild(actionsDiv);
@@ -769,6 +788,138 @@ function selectTodo(index) {
     renderTodoList();
     updatePomodoroButton();
 }
+
+// Drag and Drop state
+let draggedIndex = null;
+let dropTargetIndex = null;
+
+/**
+ * Handle drag start event for todo reordering.
+ * Stores the index of the dragged todo item.
+ */
+function handleDragStart(e) {
+    draggedIndex = parseInt(e.currentTarget.dataset.index);
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.currentTarget.innerHTML);
+}
+
+/**
+ * Handle drag end event for todo reordering.
+ * Cleans up drag state and visual indicators.
+ */
+function handleDragEnd(e) {
+    e.currentTarget.classList.remove('dragging');
+    
+    // Remove all drag-over classes
+    document.querySelectorAll('.todo-item').forEach(item => {
+        item.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+    });
+    
+    draggedIndex = null;
+    dropTargetIndex = null;
+}
+
+/**
+ * Handle drag over event to enable drop.
+ * Prevents default to allow drop and shows visual feedback.
+ */
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+/**
+ * Handle drag enter event to show drop target indicator.
+ * Adds visual feedback showing where the item will be dropped.
+ */
+function handleDragEnter(e) {
+    const targetIndex = parseInt(e.currentTarget.dataset.index);
+    
+    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+        e.currentTarget.classList.add('drag-over');
+        
+        // Determine if we should show indicator above or below
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midpoint = rect.top + (rect.height / 2);
+        
+        if (e.clientY < midpoint) {
+            e.currentTarget.classList.add('drag-over-top');
+            e.currentTarget.classList.remove('drag-over-bottom');
+        } else {
+            e.currentTarget.classList.add('drag-over-bottom');
+            e.currentTarget.classList.remove('drag-over-top');
+        }
+    }
+}
+
+/**
+ * Handle drag leave event to remove drop target indicator.
+ * Removes visual feedback when dragging away from a potential drop target.
+ */
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+}
+
+/**
+ * Handle drop event to reorder todos.
+ * Moves the dragged todo to the new position and saves.
+ */
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    const targetIndex = parseInt(e.currentTarget.dataset.index);
+    
+    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+        // Calculate drop position based on mouse position
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midpoint = rect.top + (rect.height / 2);
+        const dropAbove = e.clientY < midpoint;
+        
+        // Calculate the actual target index
+        let newIndex = targetIndex;
+        if (dropAbove) {
+            // Dropping above the target
+            newIndex = targetIndex;
+        } else {
+            // Dropping below the target
+            newIndex = targetIndex + 1;
+        }
+        
+        // Adjust if dragging down (remove happens before insert)
+        if (draggedIndex < newIndex) {
+            newIndex--;
+        }
+        
+        // Reorder the todos array
+        const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
+        currentDayData.todos.splice(newIndex, 0, movedTodo);
+        
+        // Update selected todo index if needed
+        if (selectedTodo === draggedIndex) {
+            selectedTodo = newIndex;
+        } else if (selectedTodo !== null) {
+            if (draggedIndex < selectedTodo && newIndex >= selectedTodo) {
+                selectedTodo--;
+            } else if (draggedIndex > selectedTodo && newIndex <= selectedTodo) {
+                selectedTodo++;
+            }
+        }
+        
+        // Re-render and save
+        renderTodoList();
+        saveDayData();
+        updateCalendarBadges();
+    }
+    
+    return false;
+}
+
 
 // Move todo to next day
 async function moveTodoToNextDay(index) {
