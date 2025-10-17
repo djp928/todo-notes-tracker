@@ -875,13 +875,13 @@ function handleDragOver(e) {
     e.preventDefault(); // Required for drop to work
     e.stopPropagation(); // Prevent event bubbling
     
+    const targetIndex = parseInt(e.currentTarget.dataset.index);
+    
     // Log once per drag operation
     if (!dragOverLogged) {
-        console.log('DragOver is being called - drop should work');
+        console.log('DragOver called on item', targetIndex, '(dragging item', draggedIndex + ')');
         dragOverLogged = true;
     }
-    
-    const targetIndex = parseInt(e.currentTarget.dataset.index);
     
     if (draggedIndex !== null && draggedIndex !== targetIndex) {
         e.dataTransfer.dropEffect = 'move';
