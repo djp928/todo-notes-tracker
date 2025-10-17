@@ -349,6 +349,12 @@ async function loadDayData(date) {
 // Save current day data
 async function saveDayData() {
     try {
+        // CRITICAL: Never save if data is invalid or missing
+        if (!currentDayData || !currentDayData.todos || !Array.isArray(currentDayData.todos)) {
+            console.error('Refusing to save invalid day data:', currentDayData);
+            return;
+        }
+        
         await window.invoke('save_day_data', {
             dayData: currentDayData,
             dataDir: dataDir
