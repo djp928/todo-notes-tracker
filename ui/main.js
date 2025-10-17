@@ -296,13 +296,9 @@ function setupEventListeners() {
     
     // Drag and drop event delegation on parent container (better for macOS)
     if (todoListEl) {
-        console.log('Setting up drag event delegation on todoListEl');
-        
         todoListEl.addEventListener('dragover', (e) => {
-            console.log('todoListEl dragover fired, e.target:', e.target.className);
             // Find the todo-item being dragged over
             const todoItem = e.target.closest('.todo-item');
-            console.log('Found todoItem:', todoItem ? todoItem.dataset.index : 'null');
             if (todoItem && todoItem.dataset.index) {
                 // Create a new event-like object with todoItem as currentTarget
                 const delegatedEvent = Object.create(e);
@@ -315,7 +311,6 @@ function setupEventListeners() {
         });
         
         todoListEl.addEventListener('drop', (e) => {
-            console.log('todoListEl drop fired');
             const todoItem = e.target.closest('.todo-item');
             if (todoItem && todoItem.dataset.index) {
                 const delegatedEvent = Object.create(e);
@@ -870,16 +865,11 @@ let currentHoverIndex = null; // Track which item mouse is over during drag
  * Since dragover doesn't fire in Tauri macOS WebView, use mousemove instead.
  */
 function handleDragMouseMove(e) {
-    console.log('mousemove fired during drag, x:', e.clientX, 'y:', e.clientY);
-    
     if (draggedIndex === null) return;
     
     // Find which todo item the mouse is over
     const elements = document.elementsFromPoint(e.clientX, e.clientY);
-    console.log('Elements at point:', elements.length, 'first:', elements[0] ? elements[0].className : 'none');
-    
     const todoItem = elements.find(el => el.classList && el.classList.contains('todo-item'));
-    console.log('Found todo-item:', todoItem ? todoItem.dataset.index : 'null');
     
     if (todoItem && todoItem.dataset.index) {
         const hoverIndex = parseInt(todoItem.dataset.index);
@@ -893,8 +883,6 @@ function handleDragMouseMove(e) {
             currentHoverIndex = hoverIndex;
             
             if (hoverIndex !== draggedIndex) {
-                console.log('Mouse over item', hoverIndex, '(dragging item', draggedIndex + ')');
-                
                 // Add hover effect
                 const rect = todoItem.getBoundingClientRect();
                 const midpoint = rect.top + (rect.height / 2);
@@ -918,11 +906,9 @@ function handleDragStart(e) {
     dragOverLogged = false; // Reset for new drag
     e.currentTarget.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
-    // Use text/plain for better cross-platform compatibility (especially macOS)
     e.dataTransfer.setData('text/plain', draggedIndex.toString());
     
-    // CRITICAL for macOS: Create a custom drag image to avoid blocking events
-    // Create a small, transparent drag image so the actual element doesn't block events
+    // Create a custom drag image to avoid blocking events
     const dragImage = document.createElement('div');
     dragImage.style.position = 'absolute';
     dragImage.style.top = '-1000px';
@@ -937,35 +923,29 @@ function handleDragStart(e) {
         document.body.removeChild(dragImage);
     }, 0);
     
-    // WORKAROUND for macOS: Since dragover doesn't fire, use mousemove to track position
-    console.log('Drag started:', draggedIndex, '- using mousemove for macOS');
+    // Workaround for macOS: use mousemove to track position
     document.addEventListener('mousemove', handleDragMouseMove);
 }
 
 /**
  * Handle drag end event for todo reordering.
  * Cleans up drag state and visual indicators.
- * Use setTimeout to ensure drop event fires first on macOS.
- * WORKAROUND: Since dragover/drop don't fire on macOS, handle reorder here.
+ * Workaround: Since dragover/drop don't fire reliably on macOS, handle reorder here.
  */
 function handleDragEnd(e) {
-    console.log('Drag end event, currentHoverIndex:', currentHoverIndex);
-    
     // Remove mousemove listener
     document.removeEventListener('mousemove', handleDragMouseMove);
     
-    // Save reference to element before setTimeout (e.currentTarget becomes null in setTimeout)
+    // Save reference to element before setTimeout
     const element = e.currentTarget;
     
-    // WORKAROUND for macOS: Perform reorder based on currentHoverIndex
+    // Workaround for macOS: Perform reorder based on currentHoverIndex
     if (draggedIndex !== null && currentHoverIndex !== null && draggedIndex !== currentHoverIndex) {
-        console.log('Reordering: moving from', draggedIndex, 'to', currentHoverIndex);
-        
         // Calculate drop position
         const targetIndex = currentHoverIndex;
         let newIndex = targetIndex;
         
-        // Determine if we're dropping above or below based on the class
+        // Determine if dropping above or below based on the class
         const targetItem = document.querySelector(`.todo-item[data-index="${targetIndex}"]`);
         if (targetItem && targetItem.classList.contains('drag-over-bottom')) {
             newIndex = targetIndex + 1;
@@ -995,8 +975,6 @@ function handleDragEnd(e) {
         renderTodoList();
         saveDayData();
         updateCalendarBadges();
-        
-        console.log('Reorder complete');
     }
     
     // Delay visual cleanup
@@ -1016,28 +994,21 @@ function handleDragEnd(e) {
         draggedIndex = null;
         dropTargetIndex = null;
         currentHoverIndex = null;
-        
-        console.log('Cleanup complete');
-    }, 50); // Small delay to let drop event fire first
+    }, 50);
 }
 
 /**
  * Handle drag over event to enable drop.
  * Prevents default to allow drop and shows visual feedback.
- * CRITICAL for macOS: Must preventDefault AND update visual indicators.
  */
 function handleDragOver(e) {
-    console.log('handleDragOver CALLED! e.currentTarget:', e.currentTarget ? e.currentTarget.className : 'null', 'e.target:', e.target.className);
-    
-    e.preventDefault(); // Required for drop to work
-    e.stopPropagation(); // Prevent event bubbling
+    e.preventDefault();
+    e.stopPropagation();
     
     const targetIndex = parseInt(e.currentTarget.dataset.index);
-    console.log('targetIndex from dataset:', targetIndex);
     
     // Log once per drag operation
     if (!dragOverLogged) {
-        console.log('DragOver called on item', targetIndex, '(dragging item', draggedIndex + ')');
         dragOverLogged = true;
     }
     
@@ -1058,7 +1029,7 @@ function handleDragOver(e) {
             e.currentTarget.classList.add('drag-over-bottom');
         }
     } else if (draggedIndex === targetIndex) {
-        // Allow drop on same element (will be ignored but allows drop event to fire)
+        // Allow drop on same element
         e.dataTransfer.dropEffect = 'move';
     }
     
@@ -1092,14 +1063,10 @@ function handleDragLeave(e) {
  * Moves the dragged todo to the new position and saves.
  */
 function handleDrop(e) {
-    e.preventDefault(); // CRITICAL for macOS
+    e.preventDefault();
     e.stopPropagation();
     
-    // Debug: Log drop event
-    console.log('Drop event fired, draggedIndex:', draggedIndex);
-    
     const targetIndex = parseInt(e.currentTarget.dataset.index);
-    console.log('Drop targetIndex:', targetIndex);
     
     if (draggedIndex !== null && draggedIndex !== targetIndex) {
         // Calculate drop position based on mouse position
@@ -1110,19 +1077,15 @@ function handleDrop(e) {
         // Calculate the actual target index
         let newIndex = targetIndex;
         if (dropAbove) {
-            // Dropping above the target
             newIndex = targetIndex;
         } else {
-            // Dropping below the target
             newIndex = targetIndex + 1;
         }
         
-        // Adjust if dragging down (remove happens before insert)
+        // Adjust if dragging down
         if (draggedIndex < newIndex) {
             newIndex--;
         }
-        
-        console.log('Reordering: moving from', draggedIndex, 'to', newIndex);
         
         // Reorder the todos array
         const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
@@ -1143,10 +1106,6 @@ function handleDrop(e) {
         renderTodoList();
         saveDayData();
         updateCalendarBadges();
-        
-        console.log('Reorder complete');
-    } else {
-        console.log('Drop ignored - same position or null draggedIndex');
     }
     
     return false;
