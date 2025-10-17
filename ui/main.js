@@ -840,9 +840,12 @@ function handleDragStart(e) {
 function handleDragEnd(e) {
     console.log('Drag end event');
     
+    // Save reference to element before setTimeout (e.currentTarget becomes null in setTimeout)
+    const element = e.currentTarget;
+    
     // Delay cleanup to ensure drop event fires first on macOS
     setTimeout(() => {
-        e.currentTarget.classList.remove('dragging');
+        element.classList.remove('dragging');
         
         // Remove all drag-over classes
         document.querySelectorAll('.todo-item').forEach(item => {
