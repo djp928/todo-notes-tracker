@@ -14,24 +14,44 @@ This feature allows users to reorder todo items by clicking and dragging them to
    - Changes cursor to "grab" on hover, "grabbing" when active
    - Fades in smoothly with opacity transition
 
-2. **Dragging State**
+2. **Drop Zones (Top & Bottom)**
+   - Large, prominent zones at the top and bottom of the todo list
+   - Only appear when actively dragging an item (reduces clutter)
+   - 3rem tall for easy targeting
+   - Top zone displays: "↑ Drop here to move to top"
+   - Bottom zone displays: "↓ Drop here to move to bottom"
+   - Highlight with blue border and background when hovering during drag
+   - Make it effortless to move items to first or last position
+
+3. **Dragging State**
    - The dragged item becomes semi-transparent (40% opacity)
    - Background is highlighted to show it's being moved
    - Item can be dragged up or down the list
+   - Drop zones automatically appear above and below the list
 
-3. **Drop Target Indicator**
-   - As you hover over potential drop positions, a colored border appears
+4. **Drop Target Indicator (Mid-List)**
+   - As you hover over items in the middle, a colored border appears
    - Top border (2px blue) = item will drop above the target
    - Bottom border (2px blue) = item will drop below the target
    - Hover background color changes to provide additional feedback
 
 ### How to Use
 
+**Moving to Top/Bottom (Easy Way):**
 1. Hover over any todo item to reveal the drag handle (⋮⋮)
 2. Click and hold the drag handle
-3. Drag the item up or down to the desired position
-4. Release to drop the item in the new position
-5. The list automatically saves and updates calendar badges
+3. Drag up to the "Drop here to move to top" zone, or
+4. Drag down to the "Drop here to move to bottom" zone
+5. Release to instantly move to that position
+
+**Precise Positioning (Mid-List):**
+1. Hover over any todo item to reveal the drag handle (⋮⋮)
+2. Click and hold the drag handle
+3. Drag to any position between other items
+4. Watch for the blue border indicator showing where it will drop
+5. Release to place the item at that exact position
+
+The list automatically saves and updates calendar badges after any reorder.
 
 ## Technical Implementation
 
@@ -51,19 +71,28 @@ let dropTargetIndex = null;  // Track where it will be dropped
 - `dragleave` - Removes drop indicator when leaving target
 - `drop` - Performs the actual reordering and saves
 
+**Drop Zone Handlers:**
+- `handleDropZoneDragOver` - Enables dropping in top/bottom zones
+- `handleDropZoneEnter` - Highlights drop zone on hover
+- `handleDropZoneLeave` - Removes highlight when leaving zone
+- `handleDropZoneDrop` - Moves item to position 0 (top) or length-1 (bottom)
+
 **Reordering Logic:**
 ```javascript
-// Remove item from original position
+// For mid-list drops
 const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
-
-// Calculate new position (accounting for the removal)
 let newIndex = targetIndex;
 if (draggedIndex < newIndex) {
     newIndex--;  // Adjust because removal shifts indices
 }
-
-// Insert at new position
 currentDayData.todos.splice(newIndex, 0, movedTodo);
+
+// For drop zones
+if (dropPosition === 'top') {
+    newIndex = 0;
+} else if (dropPosition === 'bottom') {
+    newIndex = currentDayData.todos.length - 1;
+}
 ```
 
 **Selected Todo Tracking:**
@@ -84,6 +113,27 @@ The implementation carefully updates the `selectedTodo` index when:
 
 .todo-item:hover .drag-handle {
     opacity: 1;  /* Visible on hover */
+}
+```
+
+**Drop Zones:**
+```css
+.drop-zone {
+    height: 3rem;
+    border: 2px dashed transparent;
+    opacity: 0;  /* Hidden until dragging */
+    pointer-events: none;
+}
+
+/* Show when dragging */
+.todo-list:has(.todo-item.dragging) .drop-zone {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.drop-zone-active {
+    border-color: var(--button-primary);
+    background-color: var(--todo-selected-bg);
 }
 ```
 
@@ -114,47 +164,65 @@ The implementation carefully updates the `selectedTodo` index when:
 
 1. **Visual Indicators**
    - Clear drag handle icon
+   - Large, easy-to-target drop zones (3rem tall)
    - High contrast drop indicators
    - Smooth animations for feedback
+   - Helpful text labels on drop zones
 
-2. **Keyboard Support**
+2. **Forgiving UX**
+   - Drop zones make top/bottom placement effortless
+   - No precision required for common operations
+   - Clear visual feedback at every step
+   - Zones only appear when needed (no clutter)
+
+3. **Keyboard Support**
    - Items remain clickable during drag
    - Todo selection (for Pomodoro) works independently
    - Double-click to edit still works
 
-3. **Dark Mode**
+4. **Dark Mode**
    - All drag states respect theme colors
    - Uses CSS custom properties for consistency
+   - Drop zones have good contrast in both themes
 
 ## Edge Cases Handled
 
 1. **Single Item** - Can drag a single todo (no visual change, but no error)
-2. **Empty List** - Drag handle doesn't appear if no todos exist
+2. **Empty List** - Drag handle doesn't appear if no todos exist, drop zones not shown
 3. **Completed Items** - Can reorder completed todos same as active ones
 4. **Selected Item** - Selection tracking is preserved correctly
 5. **Rapid Dragging** - State cleanup prevents visual artifacts
+6. **Drop Zone Edge Cases** - Dropping at top/bottom when already at top/bottom is handled gracefully
 
 ## Testing
 
-### Automated Tests (5 tests added)
+### Automated Tests (7 tests added)
 
 1. **Top to Bottom** - Dragging first item to last position
 2. **Bottom to Top** - Dragging last item to first position
 3. **Selected Tracking** - Selected item index updates correctly
 4. **Single Item** - Handles edge case gracefully
 5. **Property Preservation** - All todo data remains intact
+6. **Drop Zone Top** - Moving item to top via drop zone
+7. **Drop Zone Bottom** - Moving item to bottom via drop zone
 
 ### Manual Testing Checklist
 
 - [ ] Drag handle appears on hover
-- [ ] Can drag items up and down
-- [ ] Drop indicator shows correct position
+- [ ] Drop zones appear when dragging starts
+- [ ] Drop zones show helpful text labels
+- [ ] Can drag items to top drop zone
+- [ ] Can drag items to bottom drop zone
+- [ ] Drop zones highlight when hovering during drag
+- [ ] Can drag items to precise mid-list positions
+- [ ] Drop indicator shows correct position for mid-list drops
 - [ ] Items reorder correctly
 - [ ] Order persists after refresh
 - [ ] Calendar badges update after reorder
 - [ ] Selected todo tracking preserved
 - [ ] Works with completed items
 - [ ] Dark mode styling looks good
+- [ ] Drop zones disappear after drag ends
 - [ ] No console errors
 
 ## Performance Considerations
@@ -162,6 +230,8 @@ The implementation carefully updates the `selectedTodo` index when:
 - **Efficient Rendering** - Only re-renders todo list, not entire UI
 - **Smooth Animations** - CSS transitions are hardware-accelerated
 - **Minimal State** - Only tracks draggedIndex and dropTargetIndex
+- **Dynamic Drop Zones** - Only created during render, not persistent DOM elements
+- **CSS-Only Visibility** - Drop zones hidden/shown via CSS, no JS toggling
 - **Auto-save** - Uses existing debounced save mechanism
 
 ## Future Enhancements (Not Implemented)
