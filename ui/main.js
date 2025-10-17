@@ -294,43 +294,27 @@ function setupEventListeners() {
         });
     }
     
-    // Drag and drop event delegation on parent container (better for macOS)
+    // Drag and drop event delegation on parent container (better for cross-platform)
     if (todoListEl) {
         todoListEl.addEventListener('dragover', (e) => {
             // Find the todo-item being dragged over
             const todoItem = e.target.closest('.todo-item');
             if (todoItem && todoItem.dataset.index) {
-                // Create a new event-like object with todoItem as currentTarget
-                const delegatedEvent = Object.create(e);
-                Object.defineProperty(delegatedEvent, 'currentTarget', {
-                    value: todoItem,
-                    writable: false
-                });
-                handleDragOver(delegatedEvent);
+                handleDragOverForItem(todoItem, e);
             }
         });
         
         todoListEl.addEventListener('drop', (e) => {
             const todoItem = e.target.closest('.todo-item');
             if (todoItem && todoItem.dataset.index) {
-                const delegatedEvent = Object.create(e);
-                Object.defineProperty(delegatedEvent, 'currentTarget', {
-                    value: todoItem,
-                    writable: false
-                });
-                handleDrop(delegatedEvent);
+                handleDropForItem(todoItem, e);
             }
         });
         
         todoListEl.addEventListener('dragenter', (e) => {
             const todoItem = e.target.closest('.todo-item');
             if (todoItem && todoItem.dataset.index) {
-                const delegatedEvent = Object.create(e);
-                Object.defineProperty(delegatedEvent, 'currentTarget', {
-                    value: todoItem,
-                    writable: false
-                });
-                handleDragEnter(delegatedEvent);
+                handleDragEnterForItem(todoItem, e);
             }
         });
     }
@@ -856,8 +840,6 @@ function selectTodo(index) {
 
 // Drag and Drop state
 let draggedIndex = null;
-let dropTargetIndex = null;
-let dragOverLogged = false; // Track if we've logged dragover for this drag
 
 /**
  * Handle drag start event for todo reordering.
@@ -865,7 +847,6 @@ let dragOverLogged = false; // Track if we've logged dragover for this drag
  */
 function handleDragStart(e) {
     draggedIndex = parseInt(e.currentTarget.dataset.index);
-    dragOverLogged = false; // Reset for new drag
     e.currentTarget.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', draggedIndex.toString());
@@ -909,40 +890,34 @@ function handleDragEnd(e) {
         });
         
         draggedIndex = null;
-        dropTargetIndex = null;
     }, 50);
 }
 
 /**
- * Handle drag over event to enable drop.
+ * Handle drag over event for a specific todo item (called from delegation).
  * Prevents default to allow drop and shows visual feedback.
  */
-function handleDragOver(e) {
+function handleDragOverForItem(todoItem, e) {
     e.preventDefault();
     e.stopPropagation();
     
-    const targetIndex = parseInt(e.currentTarget.dataset.index);
-    
-    // Log once per drag operation
-    if (!dragOverLogged) {
-        dragOverLogged = true;
-    }
+    const targetIndex = parseInt(todoItem.dataset.index);
     
     if (draggedIndex !== null && draggedIndex !== targetIndex) {
         e.dataTransfer.dropEffect = 'move';
         
         // Update visual indicator based on mouse position
-        const rect = e.currentTarget.getBoundingClientRect();
+        const rect = todoItem.getBoundingClientRect();
         const midpoint = rect.top + (rect.height / 2);
         
         // Remove old classes
-        e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+        todoItem.classList.remove('drag-over-top', 'drag-over-bottom');
         
         // Add appropriate class
         if (e.clientY < midpoint) {
-            e.currentTarget.classList.add('drag-over-top');
+            todoItem.classList.add('drag-over-top');
         } else {
-            e.currentTarget.classList.add('drag-over-bottom');
+            todoItem.classList.add('drag-over-bottom');
         }
     } else if (draggedIndex === targetIndex) {
         // Allow drop on same element
@@ -953,40 +928,32 @@ function handleDragOver(e) {
 }
 
 /**
- * Handle drag enter event to show drop target indicator.
+ * Handle drag enter event for a specific todo item (called from delegation).
  * Adds visual feedback showing where the item will be dropped.
  */
-function handleDragEnter(e) {
-    e.preventDefault(); // Also prevent default here for macOS
+function handleDragEnterForItem(todoItem, e) {
+    e.preventDefault();
     
-    const targetIndex = parseInt(e.currentTarget.dataset.index);
+    const targetIndex = parseInt(todoItem.dataset.index);
     
     if (draggedIndex !== null && draggedIndex !== targetIndex) {
-        e.currentTarget.classList.add('drag-over');
+        todoItem.classList.add('drag-over');
     }
 }
 
 /**
- * Handle drag leave event to remove drop target indicator.
- * Removes visual feedback when dragging away from a potential drop target.
- */
-function handleDragLeave(e) {
-    e.currentTarget.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
-}
-
-/**
- * Handle drop event to reorder todos.
+ * Handle drop event for a specific todo item (called from delegation).
  * Moves the dragged todo to the new position and saves.
  */
-function handleDrop(e) {
+function handleDropForItem(todoItem, e) {
     e.preventDefault();
     e.stopPropagation();
     
-    const targetIndex = parseInt(e.currentTarget.dataset.index);
+    const targetIndex = parseInt(todoItem.dataset.index);
     
     if (draggedIndex !== null && draggedIndex !== targetIndex) {
         // Calculate drop position based on mouse position
-        const rect = e.currentTarget.getBoundingClientRect();
+        const rect = todoItem.getBoundingClientRect();
         const midpoint = rect.top + (rect.height / 2);
         const dropAbove = e.clientY < midpoint;
         
@@ -1021,10 +988,21 @@ function handleDrop(e) {
         // Re-render and save
         renderTodoList();
         saveDayData();
-        updateCalendarBadges();
     }
     
     return false;
+}
+
+/**
+ * Handle drag over event to enable drop.
+ * Prevents default to allow drop and shows visual feedback.
+ */
+/**
+ * Handle drag leave event to remove drop target indicator.
+ * Removes visual feedback when dragging away from a potential drop target.
+ */
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
 }
 
 /**
@@ -1096,7 +1074,6 @@ function handleDropZoneDrop(e) {
             // Re-render and save
             renderTodoList();
             saveDayData();
-            updateCalendarBadges();
         }
     }
     

@@ -18,7 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Smooth animations and visual feedback during drag operation
   - Automatically saves reordered list and updates calendar badges
   - Selected todo tracking preserved after reordering
-  - Uses mousemove workaround for reliable operation across platforms
 - Move todo items to arbitrary dates via calendar picker in edit modal
   - Double-click to edit a todo and access the date picker interface
   - Visual calendar displays current month with navigation controls

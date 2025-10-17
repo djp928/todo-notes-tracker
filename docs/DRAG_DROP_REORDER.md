@@ -18,7 +18,7 @@ This feature allows users to reorder todo items by clicking and dragging them to
    - Invisible by default (0 height) - **no visual clutter or dead space**
    - Automatically become clickable when you start dragging
    - **Expand only when you drag near them** - smooth height transition
-   - Expand to 3rem tall when hovering during drag for easy targeting
+   - Expand to 2.5rem tall when hovering during drag for easy targeting
    - Top zone displays: "↑ Drop here to move to top"
    - Bottom zone displays: "↓ Drop here to move to bottom"
    - Highlight with blue border and background when active
@@ -276,7 +276,7 @@ HTML5 Drag and Drop API is supported in:
 ## Code Quality
 
 - ✅ Zero clippy warnings
-- ✅ All tests passing (25 backend + 5 new frontend tests)
+- ✅ All tests passing (25 backend + 7 drag-drop frontend tests)
 - ✅ JSDoc comments for all drag functions
 - ✅ Follows project coding standards
 - ✅ Minimal changes (surgical, focused)
