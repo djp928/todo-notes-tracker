@@ -715,10 +715,6 @@ body {
     padding: 0.75rem 0;
     border-bottom: 1px solid var(--border-color);
     transition: background-color 0.2s;
-    user-select: none; /* Prevent text selection during drag */
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
 }
 
 .todo-item:hover {
@@ -760,8 +756,6 @@ body {
 .todo-item.dragging {
     opacity: 0.4;
     background-color: var(--todo-selected-bg);
-    user-select: none;
-    -webkit-user-select: none;
 }
 
 .todo-item.drag-over {

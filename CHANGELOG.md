@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Drag-and-drop todo reordering** - Click and drag todos to reorder them in the task list
-  - Visual drag handle (⋮⋮) appears on hover for intuitive interaction
-  - **Fixed macOS compatibility** - Drag handle now works properly on macOS Safari and Chrome
-  - **Improved drop zones** - Always visible (2.5rem) during drag operations for reliable targeting
+  - **Entire todo item is draggable** - Simple and reliable, works on all platforms
+  - Visual drag handle (⋮⋮) appears on hover to indicate draggability
+  - **Improved drop zones** - Visible (2.5rem) during drag operations for reliable targeting
   - Drop zones start invisible (0 height) and expand when you start dragging any item
   - Semi-transparent (60% opacity) when visible, fully opaque (100%) when hovering
   - Drop zones show helpful labels: "↑ Drop here to move to top" and "↓ Drop here to move to bottom"

@@ -398,9 +398,10 @@ function renderTodoList() {
 function createTodoElement(todo, index) {
     const todoEl = document.createElement('div');
     todoEl.className = `todo-item ${selectedTodo === index ? 'selected' : ''}`;
+    todoEl.draggable = true;  // Make entire item draggable - SIMPLE AND WORKS
     todoEl.dataset.index = index;
     
-    // Add drag event handlers to the todo item
+    // Add drag event handlers
     todoEl.addEventListener('dragstart', handleDragStart);
     todoEl.addEventListener('dragend', handleDragEnd);
     todoEl.addEventListener('dragover', handleDragOver);
@@ -408,26 +409,11 @@ function createTodoElement(todo, index) {
     todoEl.addEventListener('dragenter', handleDragEnter);
     todoEl.addEventListener('dragleave', handleDragLeave);
     
-    // Create drag handle
+    // Create drag handle (visual indicator only)
     const dragHandle = document.createElement('div');
     dragHandle.className = 'drag-handle';
     dragHandle.innerHTML = '⋮⋮';
     dragHandle.title = 'Drag to reorder';
-    
-    // Make drag handle initiate drag on the parent todo item
-    dragHandle.addEventListener('mousedown', (e) => {
-        // Prevent text selection
-        e.preventDefault();
-        // Make parent draggable
-        todoEl.draggable = true;
-    });
-    
-    dragHandle.addEventListener('mouseup', () => {
-        // Remove draggable after drag ends to prevent accidental drags
-        setTimeout(() => {
-            todoEl.draggable = false;
-        }, 100);
-    });
     
     // Create elements manually to use proper event listeners
     const checkbox = document.createElement('div');
