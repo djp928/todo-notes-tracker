@@ -423,15 +423,12 @@ function renderTodoList() {
 function createTodoElement(todo, index) {
     const todoEl = document.createElement('div');
     todoEl.className = `todo-item ${selectedTodo === index ? 'selected' : ''}`;
-    todoEl.draggable = true;  // Make entire item draggable - SIMPLE AND WORKS
+    todoEl.draggable = true;  // Make entire item draggable
     todoEl.dataset.index = index;
     
-    // Add drag event handlers
+    // Add drag event handlers (dragstart, dragend, dragleave only - others handled by delegation)
     todoEl.addEventListener('dragstart', handleDragStart);
     todoEl.addEventListener('dragend', handleDragEnd);
-    todoEl.addEventListener('dragover', handleDragOver);
-    todoEl.addEventListener('drop', handleDrop);
-    todoEl.addEventListener('dragenter', handleDragEnter);
     todoEl.addEventListener('dragleave', handleDragLeave);
     
     // Create drag handle (visual indicator only)
