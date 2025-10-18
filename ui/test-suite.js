@@ -1195,13 +1195,14 @@ describe('Drag and Drop Todo Reordering', () => {
         
         // Simulate dropping first todo in bottom drop zone
         draggedIndex = 0;
-        const newIndex = currentDayData.todos.length - 1; // Bottom position
+        const newIndex = currentDayData.todos.length; // Bottom position (end)
         const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
-        currentDayData.todos.splice(newIndex, 0, movedTodo);
+        const insertIndex = draggedIndex < newIndex ? newIndex - 1 : newIndex;
+        currentDayData.todos.splice(insertIndex, 0, movedTodo);
         
         assert.equal(currentDayData.todos[0].text, 'Second');
-        assert.equal(currentDayData.todos[1].text, 'First');
-        assert.equal(currentDayData.todos[2].text, 'Third');
+        assert.equal(currentDayData.todos[1].text, 'Third');
+        assert.equal(currentDayData.todos[2].text, 'First');
     });
 });
 

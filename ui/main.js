@@ -400,7 +400,6 @@ function renderTodoList() {
         const topDropZone = document.createElement('div');
         topDropZone.className = 'drop-zone drop-zone-top';
         topDropZone.dataset.dropPosition = 'top';
-        topDropZone.setAttribute('role', 'button');
         topDropZone.setAttribute('aria-label', 'Drop here to move to top');
         topDropZone.addEventListener('dragover', handleDropZoneDragOver);
         topDropZone.addEventListener('drop', handleDropZoneDrop);
@@ -419,7 +418,6 @@ function renderTodoList() {
         const bottomDropZone = document.createElement('div');
         bottomDropZone.className = 'drop-zone drop-zone-bottom';
         bottomDropZone.dataset.dropPosition = 'bottom';
-        bottomDropZone.setAttribute('role', 'button');
         bottomDropZone.setAttribute('aria-label', 'Drop here to move to bottom');
         bottomDropZone.addEventListener('dragover', handleDropZoneDragOver);
         bottomDropZone.addEventListener('drop', handleDropZoneDrop);
@@ -446,6 +444,8 @@ function createTodoElement(todo, index) {
     dragHandle.className = 'drag-handle';
     dragHandle.innerHTML = '⋮⋮';
     dragHandle.title = 'Drag to reorder';
+    dragHandle.setAttribute('aria-hidden', 'true');
+    dragHandle.setAttribute('role', 'presentation');
     
     // Create elements manually to use proper event listeners
     const checkbox = document.createElement('div');
@@ -855,6 +855,7 @@ let draggedIndex = null;
 function handleDragStart(e) {
     draggedIndex = parseInt(e.currentTarget.dataset.index);
     e.currentTarget.classList.add('dragging');
+    todoListEl.classList.add('dragging-active'); // For CSS performance instead of :has()
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', draggedIndex.toString());
     
@@ -885,6 +886,7 @@ function handleDragEnd(e) {
     // Delay visual cleanup to ensure drop event fires first
     setTimeout(() => {
         element.classList.remove('dragging');
+        todoListEl.classList.remove('dragging-active'); // Remove CSS performance class
         
         // Remove all drag-over classes
         document.querySelectorAll('.todo-item').forEach(item => {
@@ -1062,14 +1064,19 @@ function handleDropZoneDrop(e) {
         if (dropPosition === 'top') {
             newIndex = 0;
         } else if (dropPosition === 'bottom') {
-            newIndex = currentDayData.todos.length - 1;
+            newIndex = currentDayData.todos.length; // Insert at end (after removal)
+        } else {
+            // Unexpected dropPosition value; do not proceed
+            return false;
         }
         
         // Only reorder if position actually changes
-        if (newIndex !== draggedIndex) {
+        if (newIndex !== draggedIndex && newIndex !== draggedIndex + 1) {
             // Reorder the todos array
             const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
-            currentDayData.todos.splice(newIndex, 0, movedTodo);
+            // Adjust index if dragging from above the target
+            const insertIndex = draggedIndex < newIndex ? newIndex - 1 : newIndex;
+            currentDayData.todos.splice(insertIndex, 0, movedTodo);
             
             // Update selected todo index if needed
             updateSelectedIndexAfterReorder(draggedIndex, newIndex);

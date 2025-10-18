@@ -796,7 +796,7 @@ body {
 }
 
 /* Expand drop zones when dragging (always show them) */
-.todo-list:has(.todo-item.dragging) .drop-zone {
+.todo-list.dragging-active .drop-zone {
     height: 2.5rem;
     margin: 0.25rem 0;
     opacity: 0.6;
@@ -813,7 +813,7 @@ body {
 
 /* Highlight when hovering */
 .drop-zone-active,
-.todo-list:has(.todo-item.dragging) .drop-zone:hover {
+.todo-list.dragging-active .drop-zone:hover {
     opacity: 1;
     border-color: var(--button-primary);
     background-color: var(--todo-selected-bg);
