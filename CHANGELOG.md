@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0] - 2025-01-31
+
 ### Added
 - **Drag-and-drop todo reordering** - Click and drag todos to reorder them in the task list
   - Entire todo item is draggable for easy interaction
