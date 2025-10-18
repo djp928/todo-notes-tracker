@@ -12,6 +12,7 @@ This directory contains comprehensive documentation for the Todo Notes Tracker p
 ### Features
 - **[DARK_MODE_FEATURE.md](DARK_MODE_FEATURE.md)** - Dark mode implementation documentation
 - **[FEATURE_TODO_EDITING.md](FEATURE_TODO_EDITING.md)** - Todo item editing with notes feature
+- **[DRAG_DROP_REORDER.md](DRAG_DROP_REORDER.md)** - Drag-and-drop todo reordering feature
 - **[FEATURE_BRANCH_SUMMARY.md](FEATURE_BRANCH_SUMMARY.md)** - Summary of feature branch work
 
 ### Code Quality & Cleanup

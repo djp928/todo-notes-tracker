@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0] - 2025-01-31
+
 ### Added
+- **Drag-and-drop todo reordering** - Click and drag todos to reorder them in the task list
+  - Entire todo item is draggable for easy interaction
+  - Visual drag handle (⋮⋮) appears on hover to indicate draggability  
+  - Blue border indicator shows precisely where the todo will be placed
+  - Drop zones at top and bottom (2.5rem) for easy repositioning to first/last
+  - Drop zones are invisible by default, expand when dragging starts
+  - Works on all platforms including macOS (fixed Tauri dragDropEnabled issue)
+  - Smooth animations and visual feedback during drag operation
+  - Automatically saves reordered list and updates calendar badges
+  - Selected todo tracking preserved after reordering
 - Move todo items to arbitrary dates via calendar picker in edit modal
   - Double-click to edit a todo and access the date picker interface
   - Visual calendar displays current month with navigation controls

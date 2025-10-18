@@ -294,6 +294,31 @@ function setupEventListeners() {
         });
     }
     
+    // Drag and drop event delegation on parent container (better for cross-platform)
+    if (todoListEl) {
+        todoListEl.addEventListener('dragover', (e) => {
+            // Find the todo-item being dragged over
+            const todoItem = e.target.closest('.todo-item');
+            if (todoItem && todoItem.dataset.index) {
+                handleDragOverForItem(todoItem, e);
+            }
+        });
+        
+        todoListEl.addEventListener('drop', (e) => {
+            const todoItem = e.target.closest('.todo-item');
+            if (todoItem && todoItem.dataset.index) {
+                handleDropForItem(todoItem, e);
+            }
+        });
+        
+        todoListEl.addEventListener('dragenter', (e) => {
+            const todoItem = e.target.closest('.todo-item');
+            if (todoItem && todoItem.dataset.index) {
+                handleDragEnterForItem(todoItem, e);
+            }
+        });
+    }
+    
     // Auto-save on window blur/close
     window.addEventListener('blur', saveDayData);
     window.addEventListener('beforeunload', saveDayData);
@@ -324,6 +349,12 @@ async function loadDayData(date) {
 // Save current day data
 async function saveDayData() {
     try {
+        // CRITICAL: Never save if data is invalid or missing
+        if (!currentDayData || !currentDayData.todos || !Array.isArray(currentDayData.todos)) {
+            console.error('Refusing to save invalid day data:', currentDayData);
+            return;
+        }
+        
         await window.invoke('save_day_data', {
             dayData: currentDayData,
             dataDir: dataDir
@@ -364,16 +395,57 @@ function updateUI() {
 function renderTodoList() {
     todoListEl.innerHTML = '';
     
+    // Add drop zone at the top
+    if (currentDayData.todos.length > 0) {
+        const topDropZone = document.createElement('div');
+        topDropZone.className = 'drop-zone drop-zone-top';
+        topDropZone.dataset.dropPosition = 'top';
+        topDropZone.setAttribute('aria-label', 'Drop here to move to top');
+        topDropZone.addEventListener('dragover', handleDropZoneDragOver);
+        topDropZone.addEventListener('drop', handleDropZoneDrop);
+        topDropZone.addEventListener('dragenter', handleDropZoneEnter);
+        topDropZone.addEventListener('dragleave', handleDropZoneLeave);
+        todoListEl.appendChild(topDropZone);
+    }
+    
     currentDayData.todos.forEach((todo, index) => {
         const todoEl = createTodoElement(todo, index);
         todoListEl.appendChild(todoEl);
     });
+    
+    // Add drop zone at the bottom
+    if (currentDayData.todos.length > 0) {
+        const bottomDropZone = document.createElement('div');
+        bottomDropZone.className = 'drop-zone drop-zone-bottom';
+        bottomDropZone.dataset.dropPosition = 'bottom';
+        bottomDropZone.setAttribute('aria-label', 'Drop here to move to bottom');
+        bottomDropZone.addEventListener('dragover', handleDropZoneDragOver);
+        bottomDropZone.addEventListener('drop', handleDropZoneDrop);
+        bottomDropZone.addEventListener('dragenter', handleDropZoneEnter);
+        bottomDropZone.addEventListener('dragleave', handleDropZoneLeave);
+        todoListEl.appendChild(bottomDropZone);
+    }
 }
 
 // Create a todo element
 function createTodoElement(todo, index) {
     const todoEl = document.createElement('div');
     todoEl.className = `todo-item ${selectedTodo === index ? 'selected' : ''}`;
+    todoEl.draggable = true;  // Make entire item draggable
+    todoEl.dataset.index = index;
+    
+    // Add drag event handlers (dragstart, dragend, dragleave only - others handled by delegation)
+    todoEl.addEventListener('dragstart', handleDragStart);
+    todoEl.addEventListener('dragend', handleDragEnd);
+    todoEl.addEventListener('dragleave', handleDragLeave);
+    
+    // Create drag handle (visual indicator only)
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'drag-handle';
+    dragHandle.innerHTML = '⋮⋮';
+    dragHandle.title = 'Drag to reorder';
+    dragHandle.setAttribute('aria-hidden', 'true');
+    dragHandle.setAttribute('role', 'presentation');
     
     // Create elements manually to use proper event listeners
     const checkbox = document.createElement('div');
@@ -452,9 +524,12 @@ function createTodoElement(todo, index) {
                 } else {
                 }
             });
-        });    actionsDiv.appendChild(moveBtn);
+        });
+    
+    actionsDiv.appendChild(moveBtn);
     actionsDiv.appendChild(deleteBtn);
     
+    todoEl.appendChild(dragHandle);
     todoEl.appendChild(checkbox);
     todoEl.appendChild(todoText);
     todoEl.appendChild(actionsDiv);
@@ -769,6 +844,255 @@ function selectTodo(index) {
     renderTodoList();
     updatePomodoroButton();
 }
+
+// Drag and Drop state
+let draggedIndex = null;
+
+/**
+ * Handle drag start event for todo reordering.
+ * Stores the index of the dragged todo item.
+ */
+function handleDragStart(e) {
+    draggedIndex = parseInt(e.currentTarget.dataset.index);
+    e.currentTarget.classList.add('dragging');
+    e.currentTarget.setAttribute('aria-grabbed', 'true'); // Accessibility
+    todoListEl.classList.add('dragging-active'); // For CSS performance instead of :has()
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', draggedIndex.toString());
+    
+    // Create a custom drag image to avoid blocking events
+    const dragImage = document.createElement('div');
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    dragImage.style.width = '1px';
+    dragImage.style.height = '1px';
+    dragImage.style.opacity = '0';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    
+    // Clean up drag image after drag starts
+    setTimeout(() => {
+        document.body.removeChild(dragImage);
+    }, 0);
+}
+
+/**
+ * Handle drag end event for todo reordering.
+ * Cleans up drag state and visual indicators.
+ */
+function handleDragEnd(e) {
+    // Save reference to element before setTimeout
+    const element = e.currentTarget;
+    
+    // Delay visual cleanup to ensure drop event fires first
+    setTimeout(() => {
+        element.classList.remove('dragging');
+        element.setAttribute('aria-grabbed', 'false'); // Accessibility
+        todoListEl.classList.remove('dragging-active'); // Remove CSS performance class
+        
+        // Remove all drag-over classes
+        document.querySelectorAll('.todo-item').forEach(item => {
+            item.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+        });
+        
+        // Remove drop zone active states
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.classList.remove('drop-zone-active');
+        });
+        
+        draggedIndex = null;
+    }, 50);
+}
+
+/**
+ * Handle drag over event for a specific todo item (called from delegation).
+ * Prevents default to allow drop and shows visual feedback.
+ */
+function handleDragOverForItem(todoItem, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const targetIndex = parseInt(todoItem.dataset.index);
+    
+    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+        e.dataTransfer.dropEffect = 'move';
+        
+        // Update visual indicator based on mouse position
+        const rect = todoItem.getBoundingClientRect();
+        const midpoint = rect.top + (rect.height / 2);
+        
+        // Remove old classes
+        todoItem.classList.remove('drag-over-top', 'drag-over-bottom');
+        
+        // Add appropriate class
+        if (e.clientY < midpoint) {
+            todoItem.classList.add('drag-over-top');
+        } else {
+            todoItem.classList.add('drag-over-bottom');
+        }
+    } else if (draggedIndex === targetIndex) {
+        // Allow drop on same element
+        e.dataTransfer.dropEffect = 'move';
+    }
+    
+    return false;
+}
+
+/**
+ * Handle drag enter event for a specific todo item (called from delegation).
+ * Adds visual feedback showing where the item will be dropped.
+ */
+function handleDragEnterForItem(todoItem, e) {
+    e.preventDefault();
+    
+    const targetIndex = parseInt(todoItem.dataset.index);
+    
+    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+        todoItem.classList.add('drag-over');
+    }
+}
+
+/**
+ * Handle drop event for a specific todo item (called from delegation).
+ * Moves the dragged todo to the new position and saves.
+ */
+function handleDropForItem(todoItem, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const targetIndex = parseInt(todoItem.dataset.index);
+    
+    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+        // Calculate drop position based on mouse position
+        const rect = todoItem.getBoundingClientRect();
+        const midpoint = rect.top + (rect.height / 2);
+        const dropAbove = e.clientY < midpoint;
+        
+        // Calculate the actual target index
+        let newIndex = targetIndex;
+        if (dropAbove) {
+            newIndex = targetIndex;
+        } else {
+            newIndex = targetIndex + 1;
+        }
+        
+        // Adjust if dragging down
+        if (draggedIndex < newIndex) {
+            newIndex--;
+        }
+        
+        // Reorder the todos array
+        const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
+        currentDayData.todos.splice(newIndex, 0, movedTodo);
+        
+        // Update selected todo index if needed
+        updateSelectedIndexAfterReorder(draggedIndex, newIndex);
+        
+        // Re-render and save
+        renderTodoList();
+        saveDayData();
+    }
+    
+    return false;
+}
+
+/**
+ * Helper function to update selectedTodo index after reordering.
+ * Adjusts the selected todo index when items are moved.
+ */
+function updateSelectedIndexAfterReorder(oldDraggedIndex, newIndex) {
+    if (selectedTodo === oldDraggedIndex) {
+        selectedTodo = newIndex;
+    } else if (selectedTodo !== null) {
+        if (oldDraggedIndex < selectedTodo && newIndex >= selectedTodo) {
+            selectedTodo--;
+        } else if (oldDraggedIndex > selectedTodo && newIndex <= selectedTodo) {
+            selectedTodo++;
+        }
+    }
+}
+
+/**
+ * Handle drag leave event to remove drop target indicator.
+ * Removes visual feedback when dragging away from a potential drop target.
+ */
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+}
+
+/**
+ * Handle drag over event for drop zones.
+ * Allows dropping in top/bottom zones.
+ */
+function handleDropZoneDragOver(e) {
+    e.preventDefault(); // CRITICAL for drop to work
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+/**
+ * Handle drag enter event for drop zones.
+ * Shows visual feedback for top/bottom drop zones.
+ */
+function handleDropZoneEnter(e) {
+    e.preventDefault(); // Also prevent default here
+    if (draggedIndex !== null) {
+        e.currentTarget.classList.add('drop-zone-active');
+    }
+}
+
+/**
+ * Handle drag leave event for drop zones.
+ * Removes visual feedback from drop zones.
+ */
+function handleDropZoneLeave(e) {
+    e.currentTarget.classList.remove('drop-zone-active');
+}
+
+/**
+ * Handle drop event for drop zones.
+ * Moves todo to top or bottom of list.
+ */
+function handleDropZoneDrop(e) {
+    e.preventDefault(); // CRITICAL for macOS
+    e.stopPropagation();
+    
+    const dropPosition = e.currentTarget.dataset.dropPosition;
+    
+    if (draggedIndex !== null) {
+        let newIndex;
+        
+        if (dropPosition === 'top') {
+            newIndex = 0;
+        } else if (dropPosition === 'bottom') {
+            newIndex = currentDayData.todos.length; // Insert at end (after removal)
+        } else {
+            // Unexpected dropPosition value; do not proceed
+            return false;
+        }
+        
+        // Only reorder if position actually changes
+        if (newIndex !== draggedIndex && newIndex !== draggedIndex + 1) {
+            // Reorder the todos array
+            const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
+            // Adjust index if dragging from above the target
+            const insertIndex = draggedIndex < newIndex ? newIndex - 1 : newIndex;
+            currentDayData.todos.splice(insertIndex, 0, movedTodo);
+            
+            // Update selected todo index if needed
+            updateSelectedIndexAfterReorder(draggedIndex, insertIndex);
+            
+            // Re-render and save
+            renderTodoList();
+            saveDayData();
+        }
+    }
+    
+    return false;
+}
+
+
 
 // Move todo to next day
 async function moveTodoToNextDay(index) {

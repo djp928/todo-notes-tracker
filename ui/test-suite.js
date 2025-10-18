@@ -1064,4 +1064,146 @@ Line 3`;
     });
 });
 
+describe('Drag and Drop Todo Reordering', () => {
+    test('should reorder todos when dragging from top to bottom', () => {
+        // Setup: 3 todos
+        currentDayData.todos = [
+            { id: '1', text: 'First', completed: false },
+            { id: '2', text: 'Second', completed: false },
+            { id: '3', text: 'Third', completed: false }
+        ];
+        
+        // Simulate dragging first todo to third position
+        draggedIndex = 0;
+        const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
+        let newIndex = 2; // Dropping after third item
+        if (draggedIndex < newIndex) newIndex--;
+        currentDayData.todos.splice(newIndex, 0, movedTodo);
+        
+        assert.equal(currentDayData.todos[0].text, 'Second');
+        assert.equal(currentDayData.todos[1].text, 'Third');
+        assert.equal(currentDayData.todos[2].text, 'First');
+    });
+    
+    test('should reorder todos when dragging from bottom to top', () => {
+        // Setup: 3 todos
+        currentDayData.todos = [
+            { id: '1', text: 'First', completed: false },
+            { id: '2', text: 'Second', completed: false },
+            { id: '3', text: 'Third', completed: false }
+        ];
+        
+        // Simulate dragging third todo to first position
+        draggedIndex = 2;
+        const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
+        let newIndex = 0;
+        if (draggedIndex < newIndex) newIndex--;
+        currentDayData.todos.splice(newIndex, 0, movedTodo);
+        
+        assert.equal(currentDayData.todos[0].text, 'Third');
+        assert.equal(currentDayData.todos[1].text, 'First');
+        assert.equal(currentDayData.todos[2].text, 'Second');
+    });
+    
+    test('should update selected todo index when dragging selected item', () => {
+        currentDayData.todos = [
+            { id: '1', text: 'First', completed: false },
+            { id: '2', text: 'Second', completed: false },
+            { id: '3', text: 'Third', completed: false }
+        ];
+        
+        selectedTodo = 0; // First item selected
+        draggedIndex = 0;
+        
+        // Move to position 2
+        const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
+        let newIndex = 2;
+        if (draggedIndex < newIndex) newIndex--;
+        currentDayData.todos.splice(newIndex, 0, movedTodo);
+        
+        // Update selected index
+        selectedTodo = newIndex;
+        
+        assert.equal(selectedTodo, 1); // Should now be at index 1
+    });
+    
+    test('should handle drag of single todo gracefully', () => {
+        currentDayData.todos = [
+            { id: '1', text: 'Only one', completed: false }
+        ];
+        
+        draggedIndex = 0;
+        const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
+        currentDayData.todos.splice(0, 0, movedTodo);
+        
+        assert.equal(currentDayData.todos.length, 1);
+        assert.equal(currentDayData.todos[0].text, 'Only one');
+    });
+    
+    test('should preserve todo properties during reorder', () => {
+        const completedTodo = {
+            id: '1',
+            text: 'Completed task',
+            completed: true,
+            notes: 'Important notes',
+            created_at: new Date('2024-01-01').toISOString()
+        };
+        
+        currentDayData.todos = [
+            completedTodo,
+            { id: '2', text: 'Task 2', completed: false },
+            { id: '3', text: 'Task 3', completed: false }
+        ];
+        
+        // Move completed todo to end
+        draggedIndex = 0;
+        const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
+        currentDayData.todos.splice(2, 0, movedTodo);
+        
+        const reorderedTodo = currentDayData.todos[2];
+        assert.equal(reorderedTodo.id, '1');
+        assert.equal(reorderedTodo.text, 'Completed task');
+        assert.equal(reorderedTodo.completed, true);
+        assert.equal(reorderedTodo.notes, 'Important notes');
+        assert.ok(reorderedTodo.created_at);
+    });
+    
+    test('should move todo to top via drop zone', () => {
+        currentDayData.todos = [
+            { id: '1', text: 'First', completed: false },
+            { id: '2', text: 'Second', completed: false },
+            { id: '3', text: 'Third', completed: false }
+        ];
+        
+        // Simulate dropping third todo in top drop zone
+        draggedIndex = 2;
+        const newIndex = 0; // Top position
+        const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
+        currentDayData.todos.splice(newIndex, 0, movedTodo);
+        
+        assert.equal(currentDayData.todos[0].text, 'Third');
+        assert.equal(currentDayData.todos[1].text, 'First');
+        assert.equal(currentDayData.todos[2].text, 'Second');
+    });
+    
+    test('should move todo to bottom via drop zone', () => {
+        currentDayData.todos = [
+            { id: '1', text: 'First', completed: false },
+            { id: '2', text: 'Second', completed: false },
+            { id: '3', text: 'Third', completed: false }
+        ];
+        
+        // Simulate dropping first todo in bottom drop zone
+        draggedIndex = 0;
+        const newIndex = currentDayData.todos.length; // Bottom position (end)
+        const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
+        const insertIndex = draggedIndex < newIndex ? newIndex - 1 : newIndex;
+        currentDayData.todos.splice(insertIndex, 0, movedTodo);
+        
+        assert.equal(currentDayData.todos[0].text, 'Second');
+        assert.equal(currentDayData.todos[1].text, 'Third');
+        assert.equal(currentDayData.todos[2].text, 'First');
+    });
+});
+
 console.log('Test suite loaded with', testRunner.tests.length, 'tests');

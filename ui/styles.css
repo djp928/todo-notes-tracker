@@ -727,6 +727,102 @@ body {
     padding-left: calc(0.75rem - 3px);
 }
 
+/* Drag handle for reordering */
+.drag-handle {
+    cursor: grab;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    padding: 0.25rem;
+    flex-shrink: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    opacity: 0;
+    transition: opacity 0.2s, color 0.2s;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.todo-item:hover .drag-handle {
+    opacity: 1;
+}
+
+.drag-handle:hover {
+    color: var(--text-primary);
+}
+
+/* Drag states */
+.todo-item.dragging {
+    opacity: 0.4;
+    background-color: var(--todo-selected-bg);
+    /* Don't use pointer-events: none - it breaks dragging on macOS */
+}
+
+.todo-item.drag-over {
+    background-color: var(--todo-hover-bg);
+}
+
+.todo-item.drag-over-top {
+    border-top: 2px solid var(--button-primary);
+    margin-top: -2px;
+}
+
+.todo-item.drag-over-bottom {
+    border-bottom: 2px solid var(--button-primary);
+    margin-bottom: -2px;
+}
+
+/* Drop zones for easier drag-and-drop to top/bottom */
+.drop-zone {
+    height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed transparent;
+    border-radius: 4px;
+    margin: 0;
+    transition: height 0.2s ease, margin 0.2s ease, opacity 0.2s ease;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.drop-zone::before {
+    content: '';
+    white-space: nowrap;
+}
+
+/* Expand drop zones when dragging (always show them) */
+.todo-list.dragging-active .drop-zone {
+    height: 2.5rem;
+    margin: 0.25rem 0;
+    opacity: 0.6;
+    pointer-events: auto;
+}
+
+.drop-zone-top::before {
+    content: '↑ Drop here to move to top';
+}
+
+.drop-zone-bottom::before {
+    content: '↓ Drop here to move to bottom';
+}
+
+/* Highlight when hovering */
+.drop-zone-active,
+.todo-list.dragging-active .drop-zone:hover {
+    opacity: 1;
+    border-color: var(--button-primary);
+    background-color: var(--todo-selected-bg);
+    color: var(--button-primary);
+    font-weight: 600;
+}
+
+
+
 .todo-checkbox {
     width: 20px;
     height: 20px;

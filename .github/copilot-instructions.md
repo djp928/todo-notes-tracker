@@ -81,6 +81,31 @@ body { font-size: 0.875rem; }
 - Store in app data directory (retrieved via Tauri command)
 - Async file operations with proper error handling
 
+**CRITICAL: Data Validation Before Saving**
+**Problem**: JavaScript errors in rendering or other code paths can corrupt `currentDayData`, causing it to become null, undefined, or have missing/invalid properties. If `saveDayData()` blindly writes this corrupted data to disk, it causes permanent data loss.
+
+**Solution**: ALWAYS validate data before saving:
+```javascript
+async function saveDayData() {
+    // CRITICAL: Never save if data is invalid or missing
+    if (!currentDayData || !currentDayData.todos || !Array.isArray(currentDayData.todos)) {
+        console.error('Refusing to save invalid day data:', currentDayData);
+        return;
+    }
+    
+    await window.invoke('save_day_data', {
+        dayData: currentDayData,
+        dataDir: dataDir
+    });
+}
+```
+
+**Why This Matters**: 
+- Prevents catastrophic data loss from bugs in other parts of the code
+- Acts as a safety guard against corrupt state
+- User's daily todos are irreplaceable - validation is mandatory
+- This validation should be at the START of saveDayData(), before any save operation
+
 ### 5. Pomodoro Timer Issues
 **Problem**: Tauri's `listen` API may not work reliably
 **Solution**: Use JavaScript setTimeout/setInterval with custom modals for alerts
