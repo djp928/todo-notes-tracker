@@ -236,7 +236,7 @@ Uses a helper function `updateSelectedIndexAfterReorder(draggedIndex, insertInde
 
 ## Testing
 
-### Automated Tests (7 tests added)
+### Automated Tests (7 drag/drop tests added)
 
 1. **Top to Bottom** - Dragging first item to last position
 2. **Bottom to Top** - Dragging last item to first position
