@@ -135,7 +135,7 @@ The implementation carefully updates the `selectedTodo` index when:
 
 /* Expand when hovering during drag */
 .drop-zone-active {
-    height: 3rem;
+    height: 2.5rem;
     margin: 0.5rem 0;
     opacity: 1;
     border-color: var(--button-primary);
