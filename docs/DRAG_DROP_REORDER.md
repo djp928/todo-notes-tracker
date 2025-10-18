@@ -62,7 +62,6 @@ The list automatically saves and updates calendar badges after any reorder.
 **Drag State Management:**
 ```javascript
 let draggedIndex = null;  // Track which item is being dragged
-let dropTargetIndex = null;  // Track where it will be dropped
 ```
 
 **HTML5 Drag Events:**
@@ -133,13 +132,12 @@ The implementation carefully updates the `selectedTodo` index when:
     transition: all 0.2s ease;
 }
 
-/* Enable interaction when dragging */
-.todo-list:has(.todo-item.dragging) .drop-zone {
-    pointer-events: auto;
-}
-
 /* Show drop zones when dragging is active */
 .todo-list.dragging-active .drop-zone {
+    height: 2.5rem;
+    margin: 0.25rem 0;
+    opacity: 0.6;
+}
     height: 2.5rem;
     margin: 0.25rem 0;
     opacity: 0.6;

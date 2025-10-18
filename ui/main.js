@@ -855,6 +855,7 @@ let draggedIndex = null;
 function handleDragStart(e) {
     draggedIndex = parseInt(e.currentTarget.dataset.index);
     e.currentTarget.classList.add('dragging');
+    e.currentTarget.setAttribute('aria-grabbed', 'true'); // Accessibility
     todoListEl.classList.add('dragging-active'); // For CSS performance instead of :has()
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', draggedIndex.toString());
@@ -886,6 +887,7 @@ function handleDragEnd(e) {
     // Delay visual cleanup to ensure drop event fires first
     setTimeout(() => {
         element.classList.remove('dragging');
+        element.setAttribute('aria-grabbed', 'false'); // Accessibility
         todoListEl.classList.remove('dragging-active'); // Remove CSS performance class
         
         // Remove all drag-over classes
