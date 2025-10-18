@@ -101,17 +101,20 @@ if (draggedIndex < newIndex) {
 }
 currentDayData.todos.splice(newIndex, 0, movedTodo);
 
-// For drop zones
+// For drop zones (separate handler)
 if (dropPosition === 'top') {
     newIndex = 0;
 } else if (dropPosition === 'bottom') {
-    // Use length to insert at end (will be adjusted for removal-shift)
+    // Use length to insert at the end (after removal)
     newIndex = currentDayData.todos.length;
 } else {
     return false; // Guard against unexpected values
 }
 
-// Adjust for removal-shift if needed
+// Remove the item from its current position
+const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
+
+// Adjust insert index if dragging from above the target
 const insertIndex = draggedIndex < newIndex ? newIndex - 1 : newIndex;
 currentDayData.todos.splice(insertIndex, 0, movedTodo);
 ```
