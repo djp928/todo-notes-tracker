@@ -400,6 +400,8 @@ function renderTodoList() {
         const topDropZone = document.createElement('div');
         topDropZone.className = 'drop-zone drop-zone-top';
         topDropZone.dataset.dropPosition = 'top';
+        topDropZone.setAttribute('role', 'button');
+        topDropZone.setAttribute('aria-label', 'Drop here to move to top');
         topDropZone.addEventListener('dragover', handleDropZoneDragOver);
         topDropZone.addEventListener('drop', handleDropZoneDrop);
         topDropZone.addEventListener('dragenter', handleDropZoneEnter);
@@ -417,6 +419,8 @@ function renderTodoList() {
         const bottomDropZone = document.createElement('div');
         bottomDropZone.className = 'drop-zone drop-zone-bottom';
         bottomDropZone.dataset.dropPosition = 'bottom';
+        bottomDropZone.setAttribute('role', 'button');
+        bottomDropZone.setAttribute('aria-label', 'Drop here to move to bottom');
         bottomDropZone.addEventListener('dragover', handleDropZoneDragOver);
         bottomDropZone.addEventListener('drop', handleDropZoneDrop);
         bottomDropZone.addEventListener('dragenter', handleDropZoneEnter);
@@ -978,15 +982,7 @@ function handleDropForItem(todoItem, e) {
         currentDayData.todos.splice(newIndex, 0, movedTodo);
         
         // Update selected todo index if needed
-        if (selectedTodo === draggedIndex) {
-            selectedTodo = newIndex;
-        } else if (selectedTodo !== null) {
-            if (draggedIndex < selectedTodo && newIndex >= selectedTodo) {
-                selectedTodo--;
-            } else if (draggedIndex > selectedTodo && newIndex <= selectedTodo) {
-                selectedTodo++;
-            }
-        }
+        updateSelectedIndexAfterReorder(draggedIndex, newIndex);
         
         // Re-render and save
         renderTodoList();
@@ -997,9 +993,21 @@ function handleDropForItem(todoItem, e) {
 }
 
 /**
- * Handle drag over event to enable drop.
- * Prevents default to allow drop and shows visual feedback.
+ * Helper function to update selectedTodo index after reordering.
+ * Adjusts the selected todo index when items are moved.
  */
+function updateSelectedIndexAfterReorder(oldDraggedIndex, newIndex) {
+    if (selectedTodo === oldDraggedIndex) {
+        selectedTodo = newIndex;
+    } else if (selectedTodo !== null) {
+        if (oldDraggedIndex < selectedTodo && newIndex >= selectedTodo) {
+            selectedTodo--;
+        } else if (oldDraggedIndex > selectedTodo && newIndex <= selectedTodo) {
+            selectedTodo++;
+        }
+    }
+}
+
 /**
  * Handle drag leave event to remove drop target indicator.
  * Removes visual feedback when dragging away from a potential drop target.
@@ -1064,15 +1072,7 @@ function handleDropZoneDrop(e) {
             currentDayData.todos.splice(newIndex, 0, movedTodo);
             
             // Update selected todo index if needed
-            if (selectedTodo === draggedIndex) {
-                selectedTodo = newIndex;
-            } else if (selectedTodo !== null) {
-                if (draggedIndex < selectedTodo && newIndex >= selectedTodo) {
-                    selectedTodo--;
-                } else if (draggedIndex > selectedTodo && newIndex <= selectedTodo) {
-                    selectedTodo++;
-                }
-            }
+            updateSelectedIndexAfterReorder(draggedIndex, newIndex);
             
             // Re-render and save
             renderTodoList();

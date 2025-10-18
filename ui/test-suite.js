@@ -1165,7 +1165,7 @@ describe('Drag and Drop Todo Reordering', () => {
         assert.equal(reorderedTodo.text, 'Completed task');
         assert.equal(reorderedTodo.completed, true);
         assert.equal(reorderedTodo.notes, 'Important notes');
-        assert.truthy(reorderedTodo.created_at);
+        assert.ok(reorderedTodo.created_at);
     });
     
     test('should move todo to top via drop zone', () => {
