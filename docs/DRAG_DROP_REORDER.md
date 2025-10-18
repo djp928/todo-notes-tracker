@@ -93,8 +93,13 @@ currentDayData.todos.splice(newIndex, 0, movedTodo);
 if (dropPosition === 'top') {
     newIndex = 0;
 } else if (dropPosition === 'bottom') {
-    newIndex = currentDayData.todos.length - 1;
+    // Use length to insert at end (will be adjusted for removal-shift)
+    newIndex = currentDayData.todos.length;
 }
+
+// Adjust for removal-shift if needed
+const insertIndex = draggedIndex < newIndex ? newIndex - 1 : newIndex;
+currentDayData.todos.splice(insertIndex, 0, movedTodo);
 ```
 
 **Selected Todo Tracking:**
@@ -133,10 +138,16 @@ The implementation carefully updates the `selectedTodo` index when:
     pointer-events: auto;
 }
 
-/* Expand when hovering during drag */
-.drop-zone-active {
+/* Show drop zones when dragging is active */
+.todo-list.dragging-active .drop-zone {
     height: 2.5rem;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
+    opacity: 0.6;
+}
+
+/* Highlight when hovering during drag */
+.todo-list.dragging-active .drop-zone:hover,
+.drop-zone-active {
     opacity: 1;
     border-color: var(--button-primary);
     background-color: var(--todo-selected-bg);

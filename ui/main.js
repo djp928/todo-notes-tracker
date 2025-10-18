@@ -1079,7 +1079,7 @@ function handleDropZoneDrop(e) {
             currentDayData.todos.splice(insertIndex, 0, movedTodo);
             
             // Update selected todo index if needed
-            updateSelectedIndexAfterReorder(draggedIndex, newIndex);
+            updateSelectedIndexAfterReorder(draggedIndex, insertIndex);
             
             // Re-render and save
             renderTodoList();
