@@ -13,6 +13,7 @@ This feature allows users to reorder todo items by clicking and dragging them to
    - Uses a vertical dots icon that's familiar from many mobile interfaces
    - Changes cursor to "grab" on hover, "grabbing" when active
    - Fades in smoothly with opacity transition
+   - **Visual indicator only** - the entire todo item is draggable, not just the handle
 
 2. **Drop Zones (Top & Bottom)**
    - Invisible by default (0 height) - **no visual clutter or dead space**
@@ -40,18 +41,18 @@ This feature allows users to reorder todo items by clicking and dragging them to
 ### How to Use
 
 **Moving to Top/Bottom (Easy Way):**
-1. Hover over any todo item to reveal the drag handle (⋮⋮)
-2. Click and hold the drag handle
-3. Drag up to the "Drop here to move to top" zone, or
-4. Drag down to the "Drop here to move to bottom" zone
-5. Release to instantly move to that position
+1. Click and hold anywhere on the todo item (the entire item is draggable)
+2. Drag up to the "Drop here to move to top" zone, or
+3. Drag down to the "Drop here to move to bottom" zone
+4. Release to instantly move to that position
 
 **Precise Positioning (Mid-List):**
-1. Hover over any todo item to reveal the drag handle (⋮⋮)
-2. Click and hold the drag handle
-3. Drag to any position between other items
-4. Watch for the blue border indicator showing where it will drop
-5. Release to place the item at that exact position
+1. Click and hold anywhere on the todo item
+2. Drag to any position between other items
+3. Watch for the blue border indicator showing where it will drop
+4. Release to place the item at that exact position
+
+**Note:** The drag handle (⋮⋮) is a visual indicator, but the entire todo item is draggable.
 
 The list automatically saves and updates calendar badges after any reorder.
 
@@ -64,23 +65,35 @@ The list automatically saves and updates calendar badges after any reorder.
 let draggedIndex = null;  // Track which item is being dragged
 ```
 
-**HTML5 Drag Events:**
-- `dragstart` - Captures the dragged item's index, adds visual state
-- `dragend` - Cleans up visual indicators and resets state
-- `dragover` - Enables dropping by preventing default behavior
-- `dragenter` - Shows drop indicator based on mouse position
+**Event Architecture:**
+
+The implementation uses a **hybrid approach** combining per-item and delegated listeners for optimal cross-platform compatibility:
+
+**Per-Item Listeners** (attached to each todo):
+- `dragstart` - Captures the dragged item's index, adds visual state, sets aria-grabbed
+- `dragend` - Cleans up visual indicators, resets aria-grabbed, removes state
 - `dragleave` - Removes drop indicator when leaving target
-- `drop` - Performs the actual reordering and saves
+
+**Delegated Listeners** (on parent todoListEl):
+- `dragover` - Uses `e.target.closest('.todo-item')` to find target, enables dropping
+- `dragenter` - Uses `e.target.closest('.todo-item')` to find target, shows drop indicator
+- `drop` - Uses `e.target.closest('.todo-item')` to find target, performs reordering
+
+**Why This Approach?**
+- Per-item listeners for dragstart/dragend ensure they fire reliably
+- Delegated listeners for dragover/drop/dragenter work better on macOS
+- No duplicate event handling - each event type has one handler
 
 **Drop Zone Handlers:**
 - `handleDropZoneDragOver` - Enables dropping in top/bottom zones
 - `handleDropZoneEnter` - Highlights drop zone on hover
 - `handleDropZoneLeave` - Removes highlight when leaving zone
-- `handleDropZoneDrop` - Moves item to position 0 (top) or length-1 (bottom)
+- `handleDropZoneDrop` - Moves item to position 0 (top) or end (bottom)
 
 **Reordering Logic:**
 ```javascript
-// For mid-list drops
+// For mid-list drops (delegated handler)
+const targetIndex = parseInt(todoItem.dataset.index);
 const [movedTodo] = currentDayData.todos.splice(draggedIndex, 1);
 let newIndex = targetIndex;
 if (draggedIndex < newIndex) {
@@ -94,6 +107,8 @@ if (dropPosition === 'top') {
 } else if (dropPosition === 'bottom') {
     // Use length to insert at end (will be adjusted for removal-shift)
     newIndex = currentDayData.todos.length;
+} else {
+    return false; // Guard against unexpected values
 }
 
 // Adjust for removal-shift if needed
@@ -102,10 +117,13 @@ currentDayData.todos.splice(insertIndex, 0, movedTodo);
 ```
 
 **Selected Todo Tracking:**
-The implementation carefully updates the `selectedTodo` index when:
+
+Uses a helper function `updateSelectedIndexAfterReorder(draggedIndex, insertIndex)` to update the `selectedTodo` index when:
 - The selected item itself is dragged
 - An item is dragged above/below the selected item
 - Ensures the Pomodoro selection stays accurate
+
+**Important:** Always pass `insertIndex` (the final position after adjustment), not `newIndex`.
 
 ### Styling (CSS)
 
@@ -138,10 +156,6 @@ The implementation carefully updates the `selectedTodo` index when:
     margin: 0.25rem 0;
     opacity: 0.6;
 }
-    height: 2.5rem;
-    margin: 0.25rem 0;
-    opacity: 0.6;
-}
 
 /* Highlight when hovering during drag */
 .todo-list.dragging-active .drop-zone:hover,
@@ -151,6 +165,8 @@ The implementation carefully updates the `selectedTodo` index when:
     background-color: var(--todo-selected-bg);
 }
 ```
+
+**Note:** The implementation uses `.dragging-active` class (toggled in JavaScript) instead of `:has()` selector for better performance and WebView compatibility.
 
 **Drag States:**
 ```css
@@ -178,25 +194,33 @@ The implementation carefully updates the `selectedTodo` index when:
 ## Accessibility Considerations
 
 1. **Visual Indicators**
-   - Clear drag handle icon
+   - Clear drag handle icon (⋮⋮)
    - Drop zones that expand on demand (no dead space when not in use)
    - High contrast drop indicators
    - Smooth animations for feedback
-   - Helpful text labels on drop zones
+   - Helpful text labels on drop zones via CSS `::before`
+   - `aria-label` attributes on drop zones for screen reader context
 
-2. **Forgiving UX**
+2. **ARIA Support**
+   - `aria-grabbed="true"` set on dragged item during drag
+   - `aria-grabbed="false"` restored on drag end
+   - `aria-hidden="true"` on decorative drag handle icon
+   - `aria-label` on drop zones to describe their purpose
+
+3. **Forgiving UX**
    - Drop zones make top/bottom placement effortless
    - No precision required for common operations
    - Clear visual feedback at every step
    - **Zones are invisible until needed** (clean aesthetic)
    - Zones expand automatically when you drag near them
 
-3. **Keyboard Support**
+4. **Keyboard Support**
    - Items remain clickable during drag
    - Todo selection (for Pomodoro) works independently
    - Double-click to edit still works
+   - Note: Drag-drop itself requires mouse/touch (HTML5 drag API limitation)
 
-4. **Dark Mode**
+5. **Dark Mode**
    - All drag states respect theme colors
    - Uses CSS custom properties for consistency
    - Drop zones have good contrast in both themes
@@ -245,12 +269,14 @@ The implementation carefully updates the `selectedTodo` index when:
 
 - **Efficient Rendering** - Only re-renders todo list, not entire UI
 - **Smooth Animations** - CSS transitions are hardware-accelerated
-- **Minimal State** - Only tracks draggedIndex and dropTargetIndex
+- **Minimal State** - Only tracks `draggedIndex` (no other global state variables)
 - **Dynamic Drop Zones** - Only created during render, not persistent DOM elements
 - **CSS-Only Visibility** - Drop zones hidden/shown via CSS height and opacity
+- **Class Toggle Performance** - Uses `.dragging-active` class instead of `:has()` selector for better performance
+- **Event Delegation** - dragover/drop/dragenter use delegation on parent for fewer listeners
 - **Smooth Transitions** - CSS transitions handle expansion/collapse smoothly
 - **Zero Height When Inactive** - No wasted space or layout shifts when not dragging
-- **Auto-save** - Uses existing debounced save mechanism
+- **Auto-save** - Uses existing debounced save mechanism with data validation
 
 ## Future Enhancements (Not Implemented)
 
@@ -277,10 +303,26 @@ HTML5 Drag and Drop API is supported in:
 
 ## Maintenance Notes
 
-- Drag state is stored in module-level variables (simple, effective)
-- Event handlers are attached during `createTodoElement()`
+- Drag state is stored in module-level variable: `draggedIndex` (no other state vars)
+- Per-item event handlers for dragstart/dragend/dragleave (reliable firing)
+- Delegated event handlers for dragover/drop/dragenter (better macOS compatibility)
+- Drop zones created dynamically during `renderTodoList()`
+- CSS uses `.dragging-active` class for performance (toggled in handleDragStart/handleDragEnd)
 - CSS uses existing custom properties for theming
 - No backend changes required (reuses `save_day_data`)
+- Data validation prevents saving corrupted state
+
+## Platform Compatibility
+
+**Tauri Configuration:**
+- `dragDropEnabled: false` in `tauri.conf.json` is **required for macOS**
+- This disables Tauri's file drop handler, allowing WebView drag events to work
+- Without this setting, drag-drop won't work on macOS (Linux/Windows may work)
+
+**Cross-Platform Testing:**
+- ✅ Tested on Linux
+- ✅ Tested on macOS (requires dragDropEnabled: false)
+- ✅ Expected to work on Windows (uses standard HTML5 drag API)
 
 ## Code Quality
 
